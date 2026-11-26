@@ -71,6 +71,7 @@ export class DominoRoom {
     const name=cleanPlayerName(url.searchParams.get("name"));
     if(!name)return json({error:"Name required"},400);
     const requestedId=url.searchParams.get("playerId");
+    if(this.room.match?.status==="match_over"&&this.room.players.length<this.room.maxPlayers){this.room.match=null;this.room.players.forEach((p,i)=>p.seat=i);this.room.status="waiting";}
     let player=requestedId?this.room.players.find(p=>p.id===requestedId):null;
     if(!player){
       if(this.room.players.length>=this.room.maxPlayers)return json({error:"الغرفة مكتملة"},409);
@@ -165,8 +166,8 @@ export class DominoRoom {
     const player=this.room?.players.find(p=>p.id===id);
     if(!player||!message||typeof message.type!=="string")return;
     if(message.type==="leave"){
-      if(this.room.match?.status==="playing")player.connected=false;
-      else this.room.players=this.room.players.filter(p=>p.id!==player.id);
+      if(this.room.match?.status==="playing"||this.room.match?.status==="round_over")player.connected=false;
+      else {this.room.players=this.room.players.filter(p=>p.id!==player.id);this.room.players.forEach((p,i)=>p.seat=i);this.room.status="waiting";}
       await this.save();this.broadcastState();try{socket.close(1000,"Player left")}catch{}return;
     }
     if(message.type==="chat"){
