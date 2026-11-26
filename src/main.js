@@ -106,7 +106,7 @@ function renderRoom(){
  if(!players.length)opponents.append(el("small","", "بنستقبل اللاعبين..."));
  table.append(opponents);
  const chain=el("div","chain");if(state.board.length){state.board.forEach(t=>chain.append(tileNode(t)))}else chain.append(el("div","empty-board","ترابيزة اللعب هتبدأ هنا بعد اكتمال نظام المباراة"));table.append(chain);
- const status=el("div","turn-status",state.roomInfo?.status==="full"?"اكتمل عدد اللاعبين — تجهيز الجولة":state.selected?"اختار الطرف اللي هتركب عليه":"مستنيين باقي الشلة");
+ const status=el("div","turn-status",state.roomInfo?.status==="full"?"اكتمل العدد — اللعب الجماعي قيد التفعيل":state.selected?"اختار الطرف اللي هتركب عليه":"مستنيين باقي الشلة");
  table.append(status);
  const ends=el("div","end-actions");["left","right"].forEach(end=>{const b=el("button","end-btn",end==="left"?"⬅️ الشمال":"اليمين ➡️");b.dataset.end=end;b.addEventListener("click",()=>playSelected(end));b.addEventListener("dragover",e=>e.preventDefault());b.addEventListener("drop",e=>{e.preventDefault();const id=e.dataTransfer?.getData("text/plain");if(id)state.selected=id;playSelected(end)});ends.append(b)});table.append(ends);
  const handArea=el("section","hand-area");handArea.append(el("div","hand-title",`معاينة الأحجار (${state.hand.length}) — اللعب الجماعي قيد الاستكمال`));
