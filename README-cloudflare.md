@@ -28,3 +28,12 @@ Cloudflare currently lists Durable Objects on Workers Free with SQLite storage, 
 ## Current boundary
 
 This backend foundation is not yet the finished game: authoritative dealing, turn validation, the 40-second clock, scoring, reconnect recovery during an active match, and the browser WebRTC client remain follow-up implementation work. Never treat the current lobby socket as a completed multiplayer match.
+
+## Optional TURN relay for more reliable voice
+
+The browser voice client is connected to the room's WebRTC signalling relay. For NAT/firewall networks that block direct peer-to-peer audio, configure a TURN provider. The code supports Turnix short-lived ICE credentials:
+1. Create a Turnix project and an API bearer token from its console.
+2. In Cloudflare Worker settings, add a secret named `TURNIX_API_TOKEN`.
+3. The Worker requests short-lived ICE credentials when a connected room member enables the microphone; the token itself never reaches the browser.
+
+Turnix lists a Free tier with 10 GB of relay traffic per month; check the provider's current quota and terms before relying on it. Without this secret the game uses public STUN only, so voice may fail on restrictive mobile or Wi-Fi networks. [Turnix pricing](https://turnix.io/) · [ICE credential API](https://turnix.io/docs/api-ice-credentials).
