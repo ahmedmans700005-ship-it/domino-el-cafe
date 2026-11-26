@@ -2,32 +2,29 @@
 
 An original Egyptian-style domino game project, independent from the Naguib Selim employee dashboard.
 
-## Implemented foundation
-- Arabic RTL responsive lobby and felt-table interface.
-- Four selectable formats: 1v1, 2v2, 3-player individual, and 4-player individual; target score 101 or 151.
-- Double-six tile set and tested pure rules helpers: legal ends, orientation, draw-until-playable, blocked-round ranking and points.
-- Desktop drag-and-drop plus touch/pointer selection for the tile preview.
-- Cloudflare Worker + SQLite-backed Durable Object room service.
-- Six-digit room creation, room membership, reconnectable player seats, live roster updates, real-time text chat, and WebRTC signalling relay.
-- GitHub Actions CI runs tests and production build.
+## Implemented
+- Arabic RTL responsive lobby and felt-table UI; four game modes and 101/151 targets.
+- Double-six rules engine with legal ends, correct left/right orientation, draw-until-playable, blocked-round ranking and points.
+- Server-authoritative Cloudflare Durable Object rooms with six-digit codes, player seats, reconnect handling, chat and WebRTC signalling.
+- Automatic round start when the selected room fills; seven tiles per player; highest available double opens the round.
+- Server-side move validation, 40-second turn deadline, deterministic automatic legal move on timeout, automatic draw until playable, and blocked-round detection.
+- Individual scoring and team scoring for 2v2; rounds continue until 101/151 is reached.
+- Full-duplex browser WebRTC audio client, background mute, reconnect recovery, optional TURN credentials.
+- Installable PWA shell, SVG app icon, landscape/fullscreen control, desktop drag-and-drop and touch selection.
+- GitHub Actions tests, Vite production build and Wrangler Worker dry-run.
 
-## Current status — important
-The room service and chat backend are implemented in the repository, but **the Worker has not been deployed to Cloudflare yet**. Until deployment, create/join room actions will not work on a hosted site. The visible tile area is still a local preview, not an authoritative multiplayer match.
+## Publishing status
+**Not deployed yet.** A manual Cloudflare deployment workflow is ready. It requires the two GitHub Actions secrets `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN`. Follow [README-cloudflare.md](README-cloudflare.md); the production URL will appear in the successful deploy log.
 
-Still to implement: authoritative dealing and turn validation, the 40-second turn clock and automatic legal move, and full scoring/match completion. A client-side full-duplex WebRTC voice client is now wired to the room signalling relay, including background microphone mute and WebSocket reconnect; it still needs a configured TURN token and real multi-device/network testing before voice reliability can be claimed.
+Voice works with STUN on compatible networks. For more reliable mobile/NAT connectivity, configure the optional `TURNIX_API_TOKEN` secret in Cloudflare. Multi-device live testing must be performed after deployment.
 
-## Run frontend locally
+## Local checks
 ```bash
 npm install
-npm run dev
 npm test
 npm run build
+npm run check:worker
 ```
 
-The local Vite server serves the UI; Cloudflare Durable Objects require the Worker runtime for real room tests.
-
-## Cloudflare deployment
-See [README-cloudflare.md](README-cloudflare.md) for GitHub integration, build/deploy commands, endpoints, and current Free-plan quotas. No credentials or payment details are stored in this repository.
-
-## Rules still configurable
-Egyptian house rules vary. Deal size, opening-double selection, pass/draw behavior and tie handling should remain configurable until the preferred table rules are confirmed.
+## Rules assumptions
+The first implementation deals seven tiles to each player and opens with the highest double among dealt hands. If no player has a double, the highest pip total opens. Egyptian table variants can differ; these choices can be adjusted later without changing the networking architecture.
