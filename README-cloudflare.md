@@ -9,7 +9,7 @@ Cloudflare requires an account ID and a scoped API token for non-interactive dep
 1. Open **Settings → Secrets and variables → Actions → New repository secret**.
 2. Add `CLOUDFLARE_ACCOUNT_ID` with your Cloudflare account ID.
 3. Add `CLOUDFLARE_API_TOKEN` with an API token scoped to the target account and the **Edit Cloudflare Workers** permission.
-4. Open the **Actions** tab and run **Deploy to Cloudflare Workers**, or push a commit to `main`.
+4. Open the **Actions** tab, select **Deploy to Cloudflare Workers**, and click **Run workflow**. Deployment is manual so an accidental push cannot publish unverified code.
 
 Create the token in Cloudflare Dashboard → Manage Account → Account API Tokens → Create Token → Custom → Edit Cloudflare Workers. Keep it in GitHub Secrets only; never commit it or paste it into chat. Cloudflare's official deployment guide documents these exact two values and the Wrangler GitHub Action.
 
