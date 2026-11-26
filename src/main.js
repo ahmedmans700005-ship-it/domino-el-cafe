@@ -28,7 +28,7 @@ async function joinRoom(code) {
   const data=await response.json().catch(()=>({}));
   if(!response.ok) throw new Error(data.error||"الغرفة غير موجودة");
   if(data.players?.length>=data.maxPlayers && !data.players.some(p=>p.id===sessionStorage.getItem(`domino:${code}`))) throw new Error("الغرفة مكتملة");
-  state.room=code; state.roomInfo=data;
+  state.room=code; state.roomInfo=data; state.mode=data.mode; state.target=data.target;
   await enterRoom();
 }
 async function enterRoom() {
