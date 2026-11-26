@@ -197,7 +197,8 @@ function renderRoom(){
  const form=el("form","chat-form");const input=el("input","chat-input");input.placeholder="قول للشلة حاجة...";input.maxLength=300;
  const send=el("button","primary-btn","إرسال");send.type="submit";
  form.addEventListener("submit",e=>{e.preventDefault();sendChat(input)});form.append(input,send);chat.append(form);
- const tools=el("div","room-tools");\n const landscape=el("button","secondary-btn","ملء الشاشة + أفقي");\n landscape.addEventListener("click",async()=>{try{if(!document.fullscreenElement)await document.documentElement.requestFullscreen();await screen.orientation?.lock?.("landscape")}catch{alert("لف الموبايل بالعرض يدويًا — المتصفح مش بيدعم قفل الاتجاه هنا")}});
+ const tools=el("div","room-tools");
+ const landscape=el("button","secondary-btn","ملء الشاشة + أفقي");\n landscape.addEventListener("click",async()=>{try{if(!document.fullscreenElement)await document.documentElement.requestFullscreen();await screen.orientation?.lock?.("landscape")}catch{alert("لف الموبايل بالعرض يدويًا — المتصفح مش بيدعم قفل الاتجاه هنا")}});
  const mic=el("button","secondary-btn",state.voice?.enabled?(state.voice.muted?"تشغيل المايك":"كتم المايك"):"تشغيل الصوت");
  mic.disabled=!state.playerId||state.socket?.readyState!==WebSocket.OPEN;
  mic.addEventListener("click",async()=>{try{if(!state.voice.enabled)await state.voice.enable();else state.voice.toggleMute();renderRoom()}catch(error){alert(error.message)}});
@@ -209,9 +210,10 @@ function renderRoom(){
    state.voice?.close();state.voice=null;
    if(state.socket?.readyState===WebSocket.OPEN)state.socket.send(JSON.stringify({type:"leave"}));
    state.socket?.close();state.socket=null;state.screen="lobby";state.roomInfo=null;state.playerId="";state.hand=[];state.board=[];
-   renderLobby();
+   if("serviceWorker" in navigator && location.protocol==="https:") navigator.serviceWorker.register("/sw.js").catch(()=>{});
+renderLobby();
  });
- tools.append(mic,copy,back);
+ tools.append(landscape,mic,copy,back);
  room.append(top,table,handArea,chat,tools);app.append(room);log.scrollTop=log.scrollHeight;
 }
 function playSelected(end){
