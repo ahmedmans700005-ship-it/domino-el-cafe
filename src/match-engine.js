@@ -92,7 +92,17 @@ export function applyRoundResult(room, winnerIds, blocked = false) {
 export function beginRound(room, random = Math.random) {
   const dealt=dealRound(room.players,room.mode,random);
   room.players=dealt.players;
-  room.match={...dealt,scores:room.match?.scores||Object.fromEntries(room.players.map(p=>[room.mode==="2v2"?String(p.seat%2):p.id,0])),
-    roundNumber:(room.match?.roundNumber||0)+1,status:"playing",turnDeadline:0,lastMove:null,roundResult:null};
+  const scores=room.match?.scores||Object.fromEntries(room.players.map(p=>[room.mode==="2v2"?String(p.seat%2):p.id,0]));
+  const starter=room.players.find(p=>p.id===dealt.currentPlayerId);
+  const opening=starter.hand.find(t=>t.id===dealt.openingTileId);
+  starter.hand=starter.hand.filter(t=>t.id!==dealt.openingTileId);
+  dealt.board=[{...opening}];
+  dealt.currentPlayerId=room.players[(starter.seat+1)%room.players.length].id;
+  room.match={
+    ...dealt,scores,roundNumber:(room.match?.roundNumber||0)+1,
+    status:"playing",turnDeadline:0,
+    lastMove:{playerId:starter.id,name:starter.name,tile:{...opening},end:"open",at:Date.now()},
+    roundResult:null
+  };
   return room.match;
 }
