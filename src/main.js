@@ -238,4 +238,7 @@ setInterval(()=>{
  const clock=document.querySelector(".turn-clock");
  if(clock){const left=Math.max(0,Math.ceil((Number(clock.dataset.deadline)-Date.now())/1000));clock.textContent=left+" ثانية";}
 },250);
-renderLobby();
+const savedName=sessionStorage.getItem("domino:name");
+const savedRoom=sessionStorage.getItem("domino:lastRoom");
+if(savedName&&savedRoom){state.name=savedName;joinRoom(savedRoom).catch(()=>{sessionStorage.removeItem("domino:lastRoom");renderLobby()})}
+else renderLobby();
