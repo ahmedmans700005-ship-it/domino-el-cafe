@@ -116,6 +116,15 @@ export class DominoRoom {
     const player = this.room?.players.find(p => p.id === attachment?.playerId);
     if (!player || !message || typeof message.type !== "string") return;
 
+    if (message.type === "leave") {
+      this.room.players = this.room.players.filter(p => p.id !== player.id);
+      this.room.status = this.room.players.length >= this.room.maxPlayers ? "full" : "waiting";
+      await this.save();
+      this.broadcast({ type: "room", room: roomSnapshot(this.room) });
+      try { socket.close(1000, "Player left"); } catch {}
+      return;
+    }
+
     if (message.type === "chat") {
       const text = cleanChatMessage(message.text);
       if (!text) return;
