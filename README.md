@@ -14,7 +14,7 @@ An original Egyptian-style domino game project, independent from the Naguib Seli
 ## Current status — important
 The room service and chat backend are implemented in the repository, but **the Worker has not been deployed to Cloudflare yet**. Until deployment, create/join room actions will not work on a hosted site. The visible tile area is still a local preview, not an authoritative multiplayer match.
 
-Still to implement: authoritative dealing and turn validation, the 40-second turn clock and automatic legal move, full scoring/match completion, client-side WebRTC audio (the server currently only relays signalling), and background mute/reconnect behavior.
+Still to implement: authoritative dealing and turn validation, the 40-second turn clock and automatic legal move, and full scoring/match completion. A client-side full-duplex WebRTC voice client is now wired to the room signalling relay, including background microphone mute and WebSocket reconnect; it still needs a configured TURN token and real multi-device/network testing before voice reliability can be claimed.
 
 ## Run frontend locally
 ```bash
