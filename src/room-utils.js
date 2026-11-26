@@ -32,7 +32,17 @@ export function roomSnapshot(room) {
     target: room.target,
     maxPlayers: room.maxPlayers,
     status: room.status,
-    players: room.players.map(({ id, name, connected, joinedAt }) => ({ id, name, connected, joinedAt })),
+    players: room.players.map(({ id, name, connected, joinedAt, seat, hand }) => ({
+      id, name, connected, joinedAt, seat:seat??null, handCount:hand?.length??0,
+      team:room.mode==="2v2"&&seat!==undefined?seat%2:null
+    })),
+    match: room.match ? {
+      board:room.match.board, boneyardCount:room.match.boneyard.length,
+      currentPlayerId:room.match.currentPlayerId, turnDeadline:room.match.turnDeadline,
+      consecutivePasses:room.match.consecutivePasses, roundNumber:room.match.roundNumber,
+      scores:room.match.scores, status:room.match.status, lastMove:room.match.lastMove,
+      roundResult:room.match.roundResult, target:room.target, mode:room.mode
+    } : null,
     chat: room.chat.slice(-30)
   };
 }
