@@ -1,26 +1,33 @@
 # Domino El Café
 
-A new, independent Egyptian-style online domino project. This repository is separate from the Naguib Selim employee dashboard.
+An original Egyptian-style domino game project, independent from the Naguib Selim employee dashboard.
 
-## First foundation committed
+## Implemented foundation
 - Arabic RTL responsive lobby and felt-table interface.
-- Four selectable table formats: 1v1, 2v2, 3-player individual, and 4-player individual.
-- Double-six tile set and pure, testable rules helpers.
-- Choose left/right placement; desktop supports dragging a tile onto an end.
-- Automatic draw-until-playable helper and local demo flow.
-- Blocked-round resolver waits for an empty boneyard and no legal moves.
+- Four selectable formats: 1v1, 2v2, 3-player individual, and 4-player individual; target score 101 or 151.
+- Double-six tile set and tested pure rules helpers: legal ends, orientation, draw-until-playable, blocked-round ranking and points.
+- Desktop drag-and-drop plus touch/pointer selection for the tile preview.
+- Cloudflare Worker + SQLite-backed Durable Object room service.
+- Six-digit room creation, room membership, reconnectable player seats, live roster updates, real-time text chat, and WebRTC signalling relay.
+- GitHub Actions CI runs tests and production build.
 
-## Run locally
+## Current status — important
+The room service and chat backend are implemented in the repository, but **the Worker has not been deployed to Cloudflare yet**. Until deployment, create/join room actions will not work on a hosted site. The visible tile area is still a local preview, not an authoritative multiplayer match.
+
+Still to implement: authoritative dealing and turn validation, the 40-second turn clock and automatic legal move, full scoring/match completion, client-side WebRTC audio (the server currently only relays signalling), and background mute/reconnect behavior.
+
+## Run frontend locally
 ```bash
 npm install
 npm run dev
+npm test
 npm run build
 ```
 
-## Current status
-This is an early frontend/rules prototype, **not yet a live multiplayer game**. Room synchronization, server-authoritative turns and timers, chat, animated reactions, WebRTC voice, persistence, and deployment remain to be implemented.
+The local Vite server serves the UI; Cloudflare Durable Objects require the Worker runtime for real room tests.
 
-Mobile drag interactions and orientation lock need device testing. Browsers and operating systems may suspend microphone/network activity while an app is backgrounded; the game will mute on visibility changes and recover/reconnect where possible.
+## Cloudflare deployment
+See [README-cloudflare.md](README-cloudflare.md) for GitHub integration, build/deploy commands, endpoints, and current Free-plan quotas. No credentials or payment details are stored in this repository.
 
-## Rules requiring confirmation
-Egyptian house rules vary. Deal size, opening-double selection, draw/pass policy, blocked-round scoring and tie handling must be configurable and agreed before competitive play.
+## Rules still configurable
+Egyptian house rules vary. Deal size, opening-double selection, pass/draw behavior and tie handling should remain configurable until the preferred table rules are confirmed.
