@@ -25,15 +25,20 @@ export function getLegalEnds(board, tile) {
 export function orientForEnd(tile, end, board) {
   if (!board.length) return { ...tile };
   const target = end === "left" ? board[0].a : board[board.length - 1].b;
-  if (tile.b === target) return { ...tile };
-  if (tile.a === target) return { ...tile, a: tile.b, b: tile.a, flipped: true };
+  if (end === "left") {
+    if (tile.b === target) return { ...tile };
+    if (tile.a === target) return { ...tile, a: tile.b, b: tile.a, flipped: true };
+  } else {
+    if (tile.a === target) return { ...tile };
+    if (tile.b === target) return { ...tile, a: tile.b, b: tile.a, flipped: true };
+  }
   throw new Error("Illegal placement");
 }
 
 export function placeTile(board, tile, end) {
   const oriented = orientForEnd(tile, end, board);
   if (!board.length) return [oriented];
-  return end === "left" ? [ { ...oriented, a: oriented.b, b: oriented.a }, ...board ] : [...board, oriented];
+  return end === "left" ? [oriented, ...board] : [...board, oriented];
 }
 
 // Draw automatically until a playable tile appears or the boneyard is empty.
