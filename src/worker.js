@@ -14,6 +14,7 @@ export default {
     if (url.pathname === "/api/rooms" && request.method === "POST") {
       let body;
       try { body = await request.json(); } catch { return json({ error: "Invalid JSON" }, 400); }
+      if (!body || typeof body !== "object" || Array.isArray(body)) return json({ error: "Invalid room options" }, 400);
       const name = cleanPlayerName(body.name);
       if (!name) return json({ error: "اكتب اسمك الأول" }, 400);
       for (let attempt = 0; attempt < 5; attempt++) {
