@@ -63,7 +63,7 @@ function openRoomSocket() {
       state.playerId=message.playerId;sessionStorage.setItem(`domino:${state.room}`,state.playerId);
       state.roomInfo=message.room;state.chat=message.room.chat||[];state.hand=message.yourHand||[];state.board=message.room.match?.board||[];state.voice?.syncPeers(message.room.players).catch(()=>{});
     } else if(message.type==="room") {state.roomInfo=message.room;state.hand=message.yourHand||state.hand;state.board=message.room.match?.board||[];state.voice?.syncPeers(message.room.players).catch(()=>{});}
-    else if(message.type==="chat") state.chat=[...state.chat,message.message].slice(-30);
+    else if(message.type==="error") alert(message.message);\n    else if(message.type==="chat") state.chat=[...state.chat,message.message].slice(-30);
     else if(message.type==="voice-signal") state.voice?.handleSignal(message.from,message.signal).catch(()=>{});
     renderRoom();
   });
@@ -110,7 +110,7 @@ function tileNode(tile,clickable=false){
     n.draggable=true;
     n.addEventListener("dragstart",e=>{state.selected=tile.id;e.dataTransfer?.setData("text/plain",tile.id);if(e.dataTransfer)e.dataTransfer.effectAllowed="move"});
     n.addEventListener("click",()=>{state.selected=state.selected===tile.id?null:tile.id;renderRoom()});
-    n.addEventListener("pointerdown",e=>{if(e.pointerType==="touch")n.setPointerCapture(e.pointerId)});
+    n.addEventListener("pointerdown",e=>{if(e.pointerType==="touch"){state.selected=tile.id;n.setPointerCapture(e.pointerId)}});
     n.addEventListener("pointerup",e=>{
       if(e.pointerType!=="touch"||!state.selected)return;
       const target=document.elementFromPoint(e.clientX,e.clientY)?.closest("[data-end]");
