@@ -1,4 +1,4 @@
-import { cleanChatMessage, cleanPlayerName, createRoomState, roomSnapshot } from "./room-utils.js";
+import { cleanChatMessage, cleanPlayerName, createRoomState, normalizeRoomOptions, roomSnapshot } from "./room-utils.js";
 
 const json = (data, status = 200) => new Response(JSON.stringify(data), {
   status,
@@ -24,7 +24,7 @@ export default {
           method: "POST", headers: { "content-type": "application/json" },
           body: JSON.stringify({ code, mode: body.mode, target: body.target })
         });
-        if (result.status === 201) return json({ code, mode: body.mode ?? "1v1", target: body.target === 151 ? 151 : 101 });
+        if (result.status === 201) return json({ code, ...normalizeRoomOptions(body) });
       }
       return json({ error: "تعذر إنشاء الغرفة، جرّب مرة أخرى" }, 503);
     }
@@ -88,6 +88,7 @@ export class DominoRoom {
       player.name = name;
       player.connected = true;
     }
+    this.room.status = this.room.players.length >= this.room.maxPlayers ? "full" : "waiting";
 
     const pair = new WebSocketPair();
     const [client, server] = Object.values(pair);
@@ -108,6 +109,7 @@ export class DominoRoom {
 
   async webSocketMessage(socket, raw) {
     await this.load();
+    if (String(raw).length > 4096) return;
     let message;
     try { message = JSON.parse(String(raw)); } catch { return; }
     const attachment = socket.deserializeAttachment();
