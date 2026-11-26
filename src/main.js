@@ -20,7 +20,7 @@ async function requestRoom(method, body) {
 }
 async function createRoom() {
   const data = await requestRoom("POST",{name:state.name,mode:state.mode,target:state.target});
-  state.room=data.code;
+  state.room=data.code;sessionStorage.setItem("domino:lastRoom",state.room);sessionStorage.setItem("domino:name",state.name);
   await enterRoom();
 }
 async function joinRoom(code) {
@@ -28,7 +28,7 @@ async function joinRoom(code) {
   const data=await response.json().catch(()=>({}));
   if(!response.ok) throw new Error(data.error||"الغرفة غير موجودة");
   if(data.players?.length>=data.maxPlayers && !data.players.some(p=>p.id===sessionStorage.getItem(`domino:${code}`))) throw new Error("الغرفة مكتملة");
-  state.room=code; state.roomInfo=data; state.mode=data.mode; state.target=data.target;
+  state.room=code; state.roomInfo=data; state.mode=data.mode; state.target=data.target;sessionStorage.setItem("domino:lastRoom",state.room);sessionStorage.setItem("domino:name",state.name);
   await enterRoom();
 }
 async function enterRoom() {
@@ -216,9 +216,12 @@ function renderRoom(){
    state.intentionalLeave=true;if(state.reconnectTimer)clearTimeout(state.reconnectTimer);state.reconnectTimer=null;
    state.voice?.close();state.voice=null;
    if(state.socket?.readyState===WebSocket.OPEN)state.socket.send(JSON.stringify({type:"leave"}));
-   state.socket?.close();state.socket=null;state.screen="lobby";state.roomInfo=null;state.playerId="";state.hand=[];state.board=[];
+   state.socket?.close();state.socket=null;state.screen="lobby";state.roomInfo=null;state.playerId="";state.hand=[];state.board=[];sessionStorage.removeItem("domino:lastRoom");
    if("serviceWorker" in navigator && location.protocol==="https:") navigator.serviceWorker.register("/sw.js").catch(()=>{});
-renderLobby();
+const savedName=sessionStorage.getItem("domino:name");
+const savedRoom=sessionStorage.getItem("domino:lastRoom");
+if(savedName&&savedRoom){state.name=savedName;joinRoom(savedRoom).catch(()=>{sessionStorage.removeItem("domino:lastRoom");renderLobby()})}
+else renderLobby();
  });
  tools.append(landscape,mic,copy,back);
  room.append(top,table,handArea,chat,tools);app.append(room);log.scrollTop=log.scrollHeight;
