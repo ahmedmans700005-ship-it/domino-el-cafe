@@ -191,9 +191,10 @@ function renderRoom(){
    hand.append(n);
  });
  handArea.append(hand);
+ const reactions=el("div","reaction-tray");["😂","🔥","😎","👏","اشطة عليك","العب يا اسطا"].forEach(value=>{const b=el("button","reaction-btn",value);b.addEventListener("click",()=>sendReaction(value));reactions.append(b)});handArea.append(reactions);
  const chat=el("section","chat-panel");chat.append(el("div","chat-heading","دردشة القهوة ☕"));
  const log=el("div","chat-log");
- state.chat.slice(-30).forEach(item=>{const line=el("div","chat-line");line.append(el("b","",item.name+": "),el("span","",item.text));log.append(line)});
+ state.chat.slice(-30).forEach(item=>{const line=el("div",item.reaction?"chat-line reaction-line":"chat-line");line.append(el("b","",item.name+": "),el("span","",item.text));log.append(line)});
  chat.append(log);
  const form=el("form","chat-form");const input=el("input","chat-input");input.placeholder="قول للشلة حاجة...";input.maxLength=300;
  const send=el("button","primary-btn","إرسال");send.type="submit";
