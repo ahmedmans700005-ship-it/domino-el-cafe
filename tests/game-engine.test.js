@@ -51,7 +51,7 @@ test("round deals seven tiles and leads with the highest available double",()=>{
  assert.equal(r.players.some(p=>p.hand.some(t=>t.id===opening.id)),false);
  const starterSeat=r.players.find(p=>p.id===r.match.lastMove.playerId).seat;
  assert.equal(r.match.currentPlayerId,r.players[(starterSeat+1)%r.players.length].id);
- assert.equal(r.match.boneyard.length,13);
+ assert.equal(r.match.boneyard.length,14);
 });
 
 test("3-player and 4-player rounds use seven tiles per player",()=>{
