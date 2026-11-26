@@ -124,6 +124,10 @@ function dots(n){return "●".repeat(n)||"·"}
 function startDemo(){
  const all=shuffle(makeSet());state.hand=all.splice(0,7);state.pile=all;state.board=[];state.selected=null;
 }
+function sendReaction(text){
+ if(state.socket?.readyState!==WebSocket.OPEN)return;
+ state.socket.send(JSON.stringify({type:"reaction",text}));
+}
 function sendChat(input){
  const text=input.value.trim();if(!text)return;
  if(state.socket?.readyState!==WebSocket.OPEN)return alert("الاتصال بالغرفة مش شغال");
