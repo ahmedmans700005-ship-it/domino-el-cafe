@@ -6,7 +6,7 @@ const app = document.querySelector("#app");
 const state = {
   name:"", mode:"1v1", target:101, room:"", screen:"lobby",
   hand:[], board:[], pile:[], selected:null, drawNote:"",
-  playerId:"", roomInfo:null, socket:null, socketStatus:"connecting", chat:[], voice:null, voiceStatus:"off"
+  playerId:"", roomInfo:null, socket:null, socketStatus:"connecting", chat:[], voice:null, voiceStatus:"off", reconnectTimer:null, reconnectAttempts:0, intentionalLeave:false
 };
 const modes = [{id:"1v1",label:"واحد ضد واحد",players:2},{id:"2v2",label:"اتنين ضد اتنين",players:4},{id:"3free",label:"٣ لاعيبة — فردي",players:3},{id:"4free",label:"٤ لاعيبة — فردي",players:4}];
 const el = (tag,cls,text) => { const n=document.createElement(tag); if(cls)n.className=cls; if(text!==undefined)n.textContent=text; return n; };
@@ -32,17 +32,32 @@ async function joinRoom(code) {
   await enterRoom();
 }
 async function enterRoom() {
-  state.screen="room"; state.chat=state.roomInfo?.chat||[]; startDemo();
-  const savedId=sessionStorage.getItem(`domino:${state.room}`)||"";
+  state.screen="room"; state.chat=state.roomInfo?.chat||[]; state.intentionalLeave=false; startDemo();
+  state.playerId=sessionStorage.getItem(`domino:${state.room}`)||"";
+  openRoomSocket();
+}
+function scheduleReconnect(delay) {
+  if (state.intentionalLeave || state.screen!=="room" || state.reconnectTimer) return;
+  state.socketStatus="reconnecting"; renderRoom();
+  state.reconnectTimer=setTimeout(()=>{
+    state.reconnectTimer=null;
+    if(state.screen==="room"&&!state.intentionalLeave)openRoomSocket();
+  },delay);
+}
+function openRoomSocket() {
   const scheme=location.protocol==="https:"?"wss:":"ws:";
   const query=new URLSearchParams({name:state.name});
-  if(savedId)query.set("playerId",savedId);
+  if(state.playerId)query.set("playerId",state.playerId);
   const socket=new WebSocket(`${scheme}//${location.host}/ws/${state.room}?${query}`);
   state.socket=socket; state.socketStatus="connecting";
   state.voice=new RoomVoice({roomCode:state.room,getSocket:()=>state.socket,getPlayerId:()=>state.playerId,onStatus:value=>{state.voiceStatus=value;if(state.screen==="room")renderRoom()}});
   renderRoom();
-  socket.addEventListener("open",()=>{state.socketStatus="connected";renderRoom()});
+  socket.addEventListener("open",()=>{
+    if(state.socket!==socket)return;
+    state.socketStatus="connected";state.reconnectAttempts=0;renderRoom();
+  });
   socket.addEventListener("message",event=>{
+    if(state.socket!==socket)return;
     let message;try{message=JSON.parse(event.data)}catch{return}
     if(message.type==="welcome"){
       state.playerId=message.playerId;sessionStorage.setItem(`domino:${state.room}`,state.playerId);
@@ -52,9 +67,23 @@ async function enterRoom() {
     else if(message.type==="voice-signal") state.voice?.handleSignal(message.from,message.signal).catch(()=>{});
     renderRoom();
   });
-  socket.addEventListener("close",()=>{state.socketStatus="disconnected";renderRoom()});
-  socket.addEventListener("error",()=>{state.socketStatus="error";renderRoom()});
+  socket.addEventListener("close",()=>{
+    if(state.socket!==socket||state.screen!=="room"||state.intentionalLeave)return;
+    state.socketStatus="disconnected";
+    state.voice?.close();state.voice=null;state.voiceStatus="off";
+    const delay=Math.min(1000*Math.pow(2,state.reconnectAttempts++),15000);
+    scheduleReconnect(delay);
+  });
+  socket.addEventListener("error",()=>{
+    if(state.socket!==socket)return;
+    state.socketStatus="error";renderRoom();
+  });
 }
+document.addEventListener("visibilitychange",()=>{
+  if(!document.hidden&&state.screen==="room"&&state.socket?.readyState!==WebSocket.OPEN&&!state.reconnectTimer){
+    scheduleReconnect(0);
+  }
+});
 function renderLobby(){
   app.replaceChildren();
   const shell=el("main","lobby-shell");
@@ -119,7 +148,7 @@ function renderRoom(){
  const chat=el("section","chat-panel");chat.append(el("div","chat-heading","دردشة القهوة ☕"));
  const log=el("div","chat-log");state.chat.slice(-30).forEach(item=>{const line=el("div","chat-line");line.append(el("b","",item.name+": "),el("span","",item.text));log.append(line)});chat.append(log);
  const form=el("form","chat-form");const input=el("input","chat-input");input.placeholder="قول للشلة حاجة...";input.maxLength=300;const send=el("button","primary-btn","إرسال");send.type="submit";form.addEventListener("submit",e=>{e.preventDefault();sendChat(input)});form.append(input,send);chat.append(form);
- const tools=el("div","room-tools");const mic=el("button","secondary-btn",state.voice?.enabled?(state.voice.muted?"تشغيل المايك":"كتم المايك"):"تشغيل الصوت");mic.disabled=!state.playerId||state.socket?.readyState!==WebSocket.OPEN;mic.addEventListener("click",async()=>{try{if(!state.voice.enabled)await state.voice.enable();else state.voice.toggleMute();renderRoom()}catch(error){alert(error.message)}});const copy=el("button","secondary-btn","نسخ رقم الغرفة");copy.addEventListener("click",async()=>{try{await navigator.clipboard.writeText(state.room);copy.textContent="اتنسخ ✓"}catch{alert("رقم الغرفة: "+state.room)}});const back=el("button","ghost-btn","خروج للقائمة");back.addEventListener("click",()=>{state.voice?.close();state.voice=null;if(state.socket?.readyState===WebSocket.OPEN)state.socket.send(JSON.stringify({type:"leave"}));state.socket?.close();state.socket=null;state.screen="lobby";state.roomInfo=null;state.playerId="";renderLobby()});tools.append(mic,copy,back);
+ const tools=el("div","room-tools");const mic=el("button","secondary-btn",state.voice?.enabled?(state.voice.muted?"تشغيل المايك":"كتم المايك"):"تشغيل الصوت");mic.disabled=!state.playerId||state.socket?.readyState!==WebSocket.OPEN;mic.addEventListener("click",async()=>{try{if(!state.voice.enabled)await state.voice.enable();else state.voice.toggleMute();renderRoom()}catch(error){alert(error.message)}});const copy=el("button","secondary-btn","نسخ رقم الغرفة");copy.addEventListener("click",async()=>{try{await navigator.clipboard.writeText(state.room);copy.textContent="اتنسخ ✓"}catch{alert("رقم الغرفة: "+state.room)}});const back=el("button","ghost-btn","خروج للقائمة");back.addEventListener("click",()=>{state.intentionalLeave=true;if(state.reconnectTimer)clearTimeout(state.reconnectTimer);state.reconnectTimer=null;state.voice?.close();state.voice=null;if(state.socket?.readyState===WebSocket.OPEN)state.socket.send(JSON.stringify({type:"leave"}));state.socket?.close();state.socket=null;state.screen="lobby";state.roomInfo=null;state.playerId="";renderLobby()});tools.append(mic,copy,back);
  room.append(top,table,handArea,chat,tools);app.append(room);log.scrollTop=log.scrollHeight;
 }
 function playSelected(end){
