@@ -74,6 +74,8 @@ function tileNode(tile,clickable=false){
   const n=el("button","domino-tile"+(clickable?" hand-tile":""));n.type="button";n.setAttribute("aria-label",`${tile.a} و ${tile.b}`);
   n.innerHTML=`<span>${dots(tile.a)}</span><i></i><span>${dots(tile.b)}</span>`;
   if(clickable){
+    n.draggable=true;
+    n.addEventListener("dragstart",e=>{state.selected=tile.id;e.dataTransfer?.setData("text/plain",tile.id);if(e.dataTransfer)e.dataTransfer.effectAllowed="move"});
     n.addEventListener("click",()=>{state.selected=state.selected===tile.id?null:tile.id;renderRoom()});
     n.addEventListener("pointerdown",e=>{if(e.pointerType==="touch")n.setPointerCapture(e.pointerId)});
     n.addEventListener("pointerup",e=>{
@@ -106,8 +108,8 @@ function renderRoom(){
  const chain=el("div","chain");if(state.board.length){state.board.forEach(t=>chain.append(tileNode(t)))}else chain.append(el("div","empty-board","ترابيزة اللعب هتبدأ هنا بعد اكتمال نظام المباراة"));table.append(chain);
  const status=el("div","turn-status",state.roomInfo?.status==="full"?"اكتمل عدد اللاعبين — تجهيز الجولة":state.selected?"اختار الطرف اللي هتركب عليه":"مستنيين باقي الشلة");
  table.append(status);
- const ends=el("div","end-actions");["left","right"].forEach(end=>{const b=el("button","end-btn",end==="left"?"⬅️ الشمال":"اليمين ➡️");b.dataset.end=end;b.addEventListener("click",()=>playSelected(end));ends.append(b)});table.append(ends);
- const handArea=el("section","hand-area");handArea.append(el("div","hand-title",`معاك ${state.hand.length} أحجار — تجربة محلية`));
+ const ends=el("div","end-actions");["left","right"].forEach(end=>{const b=el("button","end-btn",end==="left"?"⬅️ الشمال":"اليمين ➡️");b.dataset.end=end;b.addEventListener("click",()=>playSelected(end));b.addEventListener("dragover",e=>e.preventDefault());b.addEventListener("drop",e=>{e.preventDefault();const id=e.dataTransfer?.getData("text/plain");if(id)state.selected=id;playSelected(end)});ends.append(b)});table.append(ends);
+ const handArea=el("section","hand-area");handArea.append(el("div","hand-title",`معاينة الأحجار (${state.hand.length}) — اللعب الجماعي قيد الاستكمال`));
  const hand=el("div","hand");state.hand.forEach(t=>{const n=tileNode(t,true);if(state.selected===t.id)n.classList.add("chosen");hand.append(n)});handArea.append(hand);
  const chat=el("section","chat-panel");chat.append(el("div","chat-heading","دردشة القهوة ☕"));
  const log=el("div","chat-log");state.chat.slice(-30).forEach(item=>{const line=el("div","chat-line");line.append(el("b","",item.name+": "),el("span","",item.text));log.append(line)});chat.append(log);
