@@ -32,7 +32,7 @@ async function joinRoom(code) {
   await enterRoom();
 }
 async function enterRoom() {
-  state.screen="room"; state.chat=state.roomInfo?.chat||[]; state.intentionalLeave=false; startDemo();
+  state.screen="room"; state.chat=state.roomInfo?.chat||[]; state.intentionalLeave=false; state.hand=[]; state.board=state.roomInfo?.match?.board||[];
   state.playerId=sessionStorage.getItem(`domino:${state.room}`)||"";
   openRoomSocket();
 }
@@ -61,7 +61,7 @@ function openRoomSocket() {
     let message;try{message=JSON.parse(event.data)}catch{return}
     if(message.type==="welcome"){
       state.playerId=message.playerId;sessionStorage.setItem(`domino:${state.room}`,state.playerId);
-      state.roomInfo=message.room;state.chat=message.room.chat||[];state.voice?.syncPeers(message.room.players).catch(()=>{});
+      state.roomInfo=message.room;state.chat=message.room.chat||[];state.hand=message.yourHand||[];state.board=message.room.match?.board||[];state.voice?.syncPeers(message.room.players).catch(()=>{});
     } else if(message.type==="room") {state.roomInfo=message.room;state.voice?.syncPeers(message.room.players).catch(()=>{});}
     else if(message.type==="chat") state.chat=[...state.chat,message.message].slice(-30);
     else if(message.type==="voice-signal") state.voice?.handleSignal(message.from,message.signal).catch(()=>{});
@@ -135,15 +135,15 @@ function renderRoom(){
  const table=el("section","game-table");table.append(el("div","table-label","ترابيزة القهوة"));
  const players=state.roomInfo?.players||[];
  const opponents=el("div","opponents");
- players.filter(p=>p.id!==state.playerId).forEach(p=>{const node=el("div","opponent");node.append(el("span","avatar","😎"),el("b","",p.name),el("small",p.connected?"online":"offline",p.connected?"متصل":"خرج مؤقتًا"));opponents.append(node)});
+ players.filter(p=>p.id!==state.playerId).forEach(p=>{const node=el("div","opponent"+(state.roomInfo?.match?.currentPlayerId===p.id?" active-turn":""));node.append(el("span","avatar","😎"),el("b","",p.name),el("small","",`${p.handCount??0} حجر · ${p.connected?"متصل":"خرج مؤقتًا"}`));opponents.append(node)});
  if(!players.length)opponents.append(el("small","", "بنستقبل اللاعبين..."));
  table.append(opponents);
  const chain=el("div","chain");if(state.board.length){state.board.forEach(t=>chain.append(tileNode(t)))}else chain.append(el("div","empty-board","ترابيزة اللعب هتبدأ هنا بعد اكتمال نظام المباراة"));table.append(chain);
  const voiceHint=state.voiceStatus==="direct-only"?"الصوت مباشر فقط — بعض الشبكات قد تحتاج TURN":state.voiceStatus==="on"?"الصوت شغال":state.voiceStatus==="muted"?"المايك مكتوم":state.voiceStatus==="background-muted"?"المايك مكتوم بالخلفية":"";
- const status=el("div","turn-status",voiceHint || (state.roomInfo?.status==="full"?"اكتمل العدد — اللعب الجماعي قيد التفعيل":state.selected?"اختار الطرف اللي هتركب عليه":"مستنيين باقي الشلة"));
+ const match=state.roomInfo?.match;\n const me=currentPlayer();\n const scoreLine=match?Object.entries(match.scores||{}).map(([id,score])=>`${state.mode==="2v2"?(id==="0"?"فريق أ":"فريق ب"):(players.find(p=>p.id===id)?.name||id)}: ${score}`).join("  ·  "):"";\n const statusText=match?.status==="match_over"?"خلصت الماتش! مبروك للفائز 🏆":match?.status==="round_over"?(match.roundResult?.blocked?"قفلة!":"حد خلّص أحجاره!")+" الجولة الجاية بعد لحظات":match?(match.currentPlayerId===state.playerId?"دورك! اختار الحجر والطرف":"الدور على "+(players.find(p=>p.id===match.currentPlayerId)?.name||"لاعب آخر")):"مستنيين اكتمال عدد اللاعبين";\n const status=el("div","turn-status",voiceHint || statusText);\n if(scoreLine)table.append(el("div","score-line",scoreLine));
  table.append(status);
- const ends=el("div","end-actions");["left","right"].forEach(end=>{const b=el("button","end-btn",end==="left"?"⬅️ الشمال":"اليمين ➡️");b.dataset.end=end;b.addEventListener("click",()=>playSelected(end));b.addEventListener("dragover",e=>e.preventDefault());b.addEventListener("drop",e=>{e.preventDefault();const id=e.dataTransfer?.getData("text/plain");if(id)state.selected=id;playSelected(end)});ends.append(b)});table.append(ends);
- const handArea=el("section","hand-area");handArea.append(el("div","hand-title",`معاينة الأحجار (${state.hand.length}) — اللعب الجماعي قيد الاستكمال`));
+ const ends=el("div","end-actions");["left","right"].forEach(end=>{const b=el("button","end-btn",end==="left"?"⬅️ الشمال":"اليمين ➡️");b.dataset.end=end;b.disabled=!match||match.status!=="playing"||match.currentPlayerId!==state.playerId||!state.selected||!getLegalEnds(state.board,state.hand.find(t=>t.id===state.selected)||{}).includes(end);b.addEventListener("click",()=>playSelected(end));b.addEventListener("dragover",e=>e.preventDefault());b.addEventListener("drop",e=>{e.preventDefault();const id=e.dataTransfer?.getData("text/plain");if(id)state.selected=id;playSelected(end)});ends.append(b)});table.append(ends);
+ const handArea=el("section","hand-area");handArea.append(el("div","hand-title",`أحجارك: ${state.hand.length}  ·  المخزون: ${match?.boneyardCount??"—"}`));
  const hand=el("div","hand");state.hand.forEach(t=>{const n=tileNode(t,true);if(state.selected===t.id)n.classList.add("chosen");hand.append(n)});handArea.append(hand);
  const chat=el("section","chat-panel");chat.append(el("div","chat-heading","دردشة القهوة ☕"));
  const log=el("div","chat-log");state.chat.slice(-30).forEach(item=>{const line=el("div","chat-line");line.append(el("b","",item.name+": "),el("span","",item.text));log.append(line)});chat.append(log);
