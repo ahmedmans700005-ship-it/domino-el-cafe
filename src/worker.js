@@ -35,7 +35,7 @@ export default {
       const fallback=[{urls:"stun:stun.l.google.com:19302"}];
       if(!env.TURNIX_API_TOKEN)return json({iceServers:fallback,turnAvailable:false});
       try{
-        const turnResponse=await fetch("https://turnix.io/api/v1/credentials/ice",{method:"POST",headers:{authorization:`Bearer ${env.TURNIX_API_TOKEN}`,"content-type":"application/json"},body:JSON.stringify({room:iceMatch[1],ttl:3600})});
+        const turnResponse=await fetch("https://turnix.io/api/v1/credentials/ice",{method:"POST",headers:{authorization:`Bearer ${env.TURNIX_API_TOKEN}`,"content-type":"application/json","X-TURN-CLIENT-IP":request.headers.get("cf-connecting-ip")||""},body:JSON.stringify({room:iceMatch[1],ttl:3600})});
         if(!turnResponse.ok)return json({iceServers:fallback,turnAvailable:false});
         const turnData=await turnResponse.json();
         return Array.isArray(turnData.iceServers)&&turnData.iceServers.length?json({iceServers:turnData.iceServers,turnAvailable:true}):json({iceServers:fallback,turnAvailable:false});
