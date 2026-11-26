@@ -1,6 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { makeSet, getLegalEnds, placeTile, drawUntilPlayable, resolveBlockedRound } from "../src/game-engine.js";
+import { createRoomState } from "../src/room-utils.js";
+import { beginRound, chooseAutomaticMove, takeTurnTile, applyRoundResult } from "../src/match-engine.js";
 
 test("double-six set contains 28 unique tiles",()=>{
   const set=makeSet();
@@ -33,12 +35,6 @@ test("blocked round waits for empty boneyard and no legal moves",()=>{
   assert.deepEqual(result.winnerIds,["a"]);
   assert.equal(result.pointsAwarded,12);
 });
-
-import test from "node:test";
-import assert from "node:assert/strict";
-import { createRoomState } from "../src/room-utils.js";
-import { beginRound, chooseAutomaticMove, takeTurnTile, applyRoundResult } from "../src/match-engine.js";
-import { getLegalEnds } from "../src/game-engine.js";
 
 function room(mode="1v1",count=2){
  const state=createRoomState("123456",{mode,target:101});
