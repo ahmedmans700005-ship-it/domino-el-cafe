@@ -34,7 +34,7 @@ export default {
     if (iceMatch && request.method === "POST") {
       let body;
       try { body = await request.json(); } catch { return json({ error: "Invalid JSON" }, 400); }
-      if (typeof body.playerId !== "string" || body.playerId.length > 80) return json({ error: "Player session required" }, 401);
+      if (!body || typeof body.playerId !== "string" || body.playerId.length > 80) return json({ error: "Player session required" }, 401);
       const stub = env.ROOMS.get(env.ROOMS.idFromName(iceMatch[1]));
       const access = await stub.fetch(`https://room.internal/ice-access?playerId=${encodeURIComponent(body.playerId)}`);
       if (!access.ok) return json({ error: "لازم تكون داخل الغرفة قبل تشغيل الصوت" }, 403);
@@ -144,7 +144,7 @@ export class DominoRoom {
 
   async webSocketMessage(socket, raw) {
     await this.load();
-    if (String(raw).length > 4096) return;
+    if (String(raw).length > 65536) return;
     let message;
     try { message = JSON.parse(String(raw)); } catch { return; }
     const attachment = socket.deserializeAttachment();
