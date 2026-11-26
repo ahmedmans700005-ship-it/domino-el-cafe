@@ -176,6 +176,15 @@ export class DominoRoom {
       player.lastChatAt=now;const item={id:crypto.randomUUID(),playerId:player.id,name:player.name,text,at:now};
       this.room.chat.push(item);this.room.chat=this.room.chat.slice(-50);await this.save();this.broadcast({type:"chat",message:item});return;
     }
+    if(message.type==="reaction"){
+      const allowed=["😂","🔥","😎","👏","🫡","اشطة عليك","العب يا اسطا","يا ساتر"];
+      if(!allowed.includes(message.text))return;
+      const now=Date.now();if(now-(player.lastChatAt||0)<700)return;
+      player.lastChatAt=now;
+      const item={id:crypto.randomUUID(),playerId:player.id,name:player.name,text:message.text,at:now,reaction:true};
+      this.room.chat.push(item);this.room.chat=this.room.chat.slice(-50);await this.save();
+      this.broadcast({type:"chat",message:item});return;
+    }
     if(message.type==="play"){await this.play(socket,message);return}
     if(message.type==="voice-signal"&&typeof message.to==="string"){
       const target=this.room.players.find(p=>p.id===message.to);
