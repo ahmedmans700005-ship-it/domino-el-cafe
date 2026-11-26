@@ -1,5 +1,5 @@
 import "./style.css";
-import { makeSet, shuffle, getLegalEnds, placeTile } from "./game-engine.js";
+import { getLegalEnds } from "./game-engine.js";
 import { RoomVoice } from "./voice.js";
 
 const app = document.querySelector("#app");
@@ -62,7 +62,7 @@ function openRoomSocket() {
     if(message.type==="welcome"){
       state.playerId=message.playerId;sessionStorage.setItem(`domino:${state.room}`,state.playerId);
       state.roomInfo=message.room;state.chat=message.room.chat||[];state.hand=message.yourHand||[];state.board=message.room.match?.board||[];state.voice?.syncPeers(message.room.players).catch(()=>{});
-    } else if(message.type==="room") {state.roomInfo=message.room;state.voice?.syncPeers(message.room.players).catch(()=>{});}
+    } else if(message.type==="room") {state.roomInfo=message.room;state.hand=message.yourHand||state.hand;state.board=message.room.match?.board||[];state.voice?.syncPeers(message.room.players).catch(()=>{});}
     else if(message.type==="chat") state.chat=[...state.chat,message.message].slice(-30);
     else if(message.type==="voice-signal") state.voice?.handleSignal(message.from,message.signal).catch(()=>{});
     renderRoom();
@@ -129,32 +129,101 @@ function sendChat(input){
  state.socket.send(JSON.stringify({type:"chat",text}));input.value="";
 }
 function renderRoom(){
- app.replaceChildren();const room=el("main","room-shell");
- const top=el("header","room-top");const brand=el("div","brand compact");brand.innerHTML='<span class="brand-mark">٦|٦</span><b>DOMINO <i>EL CAFÉ</i></b>';
- const topRight=el("div","room-top-right");topRight.append(el("span","room-code",`غرفة #${state.room}`),el("span",`connection ${state.socketStatus}`,state.socketStatus==="connected"?"متصل":"الاتصال: "+state.socketStatus));top.append(brand,topRight);
+ app.replaceChildren();
+ const room=el("main","room-shell");
+ const top=el("header","room-top");
+ const brand=el("div","brand compact");brand.innerHTML='<span class="brand-mark">٦|٦</span><b>DOMINO <i>EL CAFÉ</i></b>';
+ const topRight=el("div","room-top-right");
+ topRight.append(el("span","room-code",`غرفة #${state.room}`),el("span",`connection ${state.socketStatus}`,state.socketStatus==="connected"?"متصل":"الاتصال: "+state.socketStatus));
+ top.append(brand,topRight);
  const table=el("section","game-table");table.append(el("div","table-label","ترابيزة القهوة"));
  const players=state.roomInfo?.players||[];
+ const match=state.roomInfo?.match;
  const opponents=el("div","opponents");
- players.filter(p=>p.id!==state.playerId).forEach(p=>{const node=el("div","opponent"+(state.roomInfo?.match?.currentPlayerId===p.id?" active-turn":""));node.append(el("span","avatar","😎"),el("b","",p.name),el("small","",`${p.handCount??0} حجر · ${p.connected?"متصل":"خرج مؤقتًا"}`));opponents.append(node)});
- if(!players.length)opponents.append(el("small","", "بنستقبل اللاعبين..."));
+ players.filter(p=>p.id!==state.playerId).forEach(p=>{
+   const node=el("div","opponent"+(match?.currentPlayerId===p.id?" active-turn":""));
+   node.append(el("span","avatar","😎"),el("b","",p.name),el("small","",`${p.handCount??0} حجر · ${p.connected?"متصل":"خرج مؤقتًا"}`));
+   opponents.append(node);
+ });
+ if(!players.length)opponents.append(el("small","","بنستقبل اللاعبين..."));
  table.append(opponents);
- const chain=el("div","chain");if(state.board.length){state.board.forEach(t=>chain.append(tileNode(t)))}else chain.append(el("div","empty-board","ترابيزة اللعب هتبدأ هنا بعد اكتمال نظام المباراة"));table.append(chain);
+ const chain=el("div","chain");
+ if(state.board.length)state.board.forEach(t=>chain.append(tileNode(t)));
+ else chain.append(el("div","empty-board","مستنيين باقي اللاعبين عشان نبدأ الجولة"));
+ table.append(chain);
+ const current=players.find(p=>p.id===match?.currentPlayerId);
  const voiceHint=state.voiceStatus==="direct-only"?"الصوت مباشر فقط — بعض الشبكات قد تحتاج TURN":state.voiceStatus==="on"?"الصوت شغال":state.voiceStatus==="muted"?"المايك مكتوم":state.voiceStatus==="background-muted"?"المايك مكتوم بالخلفية":"";
- const match=state.roomInfo?.match;\n const me=currentPlayer();\n const scoreLine=match?Object.entries(match.scores||{}).map(([id,score])=>`${state.mode==="2v2"?(id==="0"?"فريق أ":"فريق ب"):(players.find(p=>p.id===id)?.name||id)}: ${score}`).join("  ·  "):"";\n const statusText=match?.status==="match_over"?"خلصت الماتش! مبروك للفائز 🏆":match?.status==="round_over"?(match.roundResult?.blocked?"قفلة!":"حد خلّص أحجاره!")+" الجولة الجاية بعد لحظات":match?(match.currentPlayerId===state.playerId?"دورك! اختار الحجر والطرف":"الدور على "+(players.find(p=>p.id===match.currentPlayerId)?.name||"لاعب آخر")):"مستنيين اكتمال عدد اللاعبين";\n const status=el("div","turn-status",voiceHint || statusText);\n if(scoreLine)table.append(el("div","score-line",scoreLine));
- table.append(status);
- const ends=el("div","end-actions");["left","right"].forEach(end=>{const b=el("button","end-btn",end==="left"?"⬅️ الشمال":"اليمين ➡️");b.dataset.end=end;b.disabled=!match||match.status!=="playing"||match.currentPlayerId!==state.playerId||!state.selected||!getLegalEnds(state.board,state.hand.find(t=>t.id===state.selected)||{}).includes(end);b.addEventListener("click",()=>playSelected(end));b.addEventListener("dragover",e=>e.preventDefault());b.addEventListener("drop",e=>{e.preventDefault();const id=e.dataTransfer?.getData("text/plain");if(id)state.selected=id;playSelected(end)});ends.append(b)});table.append(ends);
- const handArea=el("section","hand-area");handArea.append(el("div","hand-title",`أحجارك: ${state.hand.length}  ·  المخزون: ${match?.boneyardCount??"—"}`));
- const hand=el("div","hand");state.hand.forEach(t=>{const n=tileNode(t,true);if(state.selected===t.id)n.classList.add("chosen");hand.append(n)});handArea.append(hand);
+ const statusText=match?.status==="match_over"?"الماتش انتهى! 🏆":match?.status==="round_over"?(match.roundResult?.blocked?"قفلة!":"لاعب خلّص أحجاره!")+" الجولة التالية بعد 5 ثواني":match?(match.currentPlayerId===state.playerId?"دورك يا بطل! اختار الحجر والطرف":"الدور على "+(current?.name||"لاعب آخر")):"مستنيين اكتمال عدد اللاعبين";
+ table.append(el("div","turn-status",voiceHint||statusText));
+ if(match?.turnDeadline&&match.status==="playing"){
+   const clock=el("div","turn-clock","40 ثانية");
+   clock.dataset.deadline=String(match.turnDeadline);
+   table.append(clock);
+ }
+ if(match?.roundResult){
+   const result=match.roundResult;
+   table.append(el("div","round-result",`${result.blocked?"قفلة":"نهاية الجولة"} — الفائز: ${result.winners.join(" و ")} — ${result.points} نقطة`));
+ }
+ if(match?.scores){
+   const scoreLine=Object.entries(match.scores).map(([id,score])=>`${state.mode==="2v2"?(id==="0"?"فريق أ":"فريق ب"):(players.find(p=>p.id===id)?.name||id)}: ${score}`).join("  ·  ");
+   table.append(el("div","score-line",scoreLine));
+ }
+ const ends=el("div","end-actions");
+ ["left","right"].forEach(end=>{
+   const b=el("button","end-btn",end==="left"?"⬅️ الشمال":"اليمين ➡️");
+   b.dataset.end=end;
+   const tile=state.hand.find(t=>t.id===state.selected);
+   b.disabled=!match||match.status!=="playing"||match.currentPlayerId!==state.playerId||!tile||!getLegalEnds(state.board,tile).includes(end);
+   b.addEventListener("click",()=>playSelected(end));
+   b.addEventListener("dragover",e=>e.preventDefault());
+   b.addEventListener("drop",e=>{e.preventDefault();const id=e.dataTransfer?.getData("text/plain");if(id){state.selected=id;playSelected(end)}});
+   ends.append(b);
+ });
+ table.append(ends);
+ const handArea=el("section","hand-area");
+ handArea.append(el("div","hand-title",`أحجارك: ${state.hand.length}  ·  المخزون: ${match?.boneyardCount??"—"}`));
+ const hand=el("div","hand");
+ state.hand.forEach(t=>{
+   const n=tileNode(t,true);
+   if(state.selected===t.id)n.classList.add("chosen");
+   if(!match||match.status!=="playing"||match.currentPlayerId!==state.playerId)n.disabled=true;
+   hand.append(n);
+ });
+ handArea.append(hand);
  const chat=el("section","chat-panel");chat.append(el("div","chat-heading","دردشة القهوة ☕"));
- const log=el("div","chat-log");state.chat.slice(-30).forEach(item=>{const line=el("div","chat-line");line.append(el("b","",item.name+": "),el("span","",item.text));log.append(line)});chat.append(log);
- const form=el("form","chat-form");const input=el("input","chat-input");input.placeholder="قول للشلة حاجة...";input.maxLength=300;const send=el("button","primary-btn","إرسال");send.type="submit";form.addEventListener("submit",e=>{e.preventDefault();sendChat(input)});form.append(input,send);chat.append(form);
- const tools=el("div","room-tools");const mic=el("button","secondary-btn",state.voice?.enabled?(state.voice.muted?"تشغيل المايك":"كتم المايك"):"تشغيل الصوت");mic.disabled=!state.playerId||state.socket?.readyState!==WebSocket.OPEN;mic.addEventListener("click",async()=>{try{if(!state.voice.enabled)await state.voice.enable();else state.voice.toggleMute();renderRoom()}catch(error){alert(error.message)}});const copy=el("button","secondary-btn","نسخ رقم الغرفة");copy.addEventListener("click",async()=>{try{await navigator.clipboard.writeText(state.room);copy.textContent="اتنسخ ✓"}catch{alert("رقم الغرفة: "+state.room)}});const back=el("button","ghost-btn","خروج للقائمة");back.addEventListener("click",()=>{state.intentionalLeave=true;if(state.reconnectTimer)clearTimeout(state.reconnectTimer);state.reconnectTimer=null;state.voice?.close();state.voice=null;if(state.socket?.readyState===WebSocket.OPEN)state.socket.send(JSON.stringify({type:"leave"}));state.socket?.close();state.socket=null;state.screen="lobby";state.roomInfo=null;state.playerId="";renderLobby()});tools.append(mic,copy,back);
+ const log=el("div","chat-log");
+ state.chat.slice(-30).forEach(item=>{const line=el("div","chat-line");line.append(el("b","",item.name+": "),el("span","",item.text));log.append(line)});
+ chat.append(log);
+ const form=el("form","chat-form");const input=el("input","chat-input");input.placeholder="قول للشلة حاجة...";input.maxLength=300;
+ const send=el("button","primary-btn","إرسال");send.type="submit";
+ form.addEventListener("submit",e=>{e.preventDefault();sendChat(input)});form.append(input,send);chat.append(form);
+ const tools=el("div","room-tools");
+ const mic=el("button","secondary-btn",state.voice?.enabled?(state.voice.muted?"تشغيل المايك":"كتم المايك"):"تشغيل الصوت");
+ mic.disabled=!state.playerId||state.socket?.readyState!==WebSocket.OPEN;
+ mic.addEventListener("click",async()=>{try{if(!state.voice.enabled)await state.voice.enable();else state.voice.toggleMute();renderRoom()}catch(error){alert(error.message)}});
+ const copy=el("button","secondary-btn","نسخ رقم الغرفة");
+ copy.addEventListener("click",async()=>{try{await navigator.clipboard.writeText(state.room);copy.textContent="اتنسخ ✓"}catch{alert("رقم الغرفة: "+state.room)}});
+ const back=el("button","ghost-btn","خروج للقائمة");
+ back.addEventListener("click",()=>{
+   state.intentionalLeave=true;if(state.reconnectTimer)clearTimeout(state.reconnectTimer);state.reconnectTimer=null;
+   state.voice?.close();state.voice=null;
+   if(state.socket?.readyState===WebSocket.OPEN)state.socket.send(JSON.stringify({type:"leave"}));
+   state.socket?.close();state.socket=null;state.screen="lobby";state.roomInfo=null;state.playerId="";state.hand=[];state.board=[];
+   renderLobby();
+ });
+ tools.append(mic,copy,back);
  room.append(top,table,handArea,chat,tools);app.append(room);log.scrollTop=log.scrollHeight;
 }
 function playSelected(end){
- const tile=state.hand.find(t=>t.id===state.selected);if(!tile)return;
- if(!getLegalEnds(state.board,tile).includes(end)){alert("الحجر ده مش راكب في الناحية دي");return}
- state.board=placeTile(state.board,tile,end);state.hand=state.hand.filter(t=>t.id!==tile.id);state.selected=null;state.drawNote="";
- renderRoom();
+ const tile=state.hand.find(t=>t.id===state.selected);
+ if(!tile)return;
+ if(!getLegalEnds(state.board,tile).includes(end))return alert("الحجر ده مش راكب في الناحية دي");
+ if(state.socket?.readyState!==WebSocket.OPEN)return alert("الاتصال بالسيرفر مقطوع");
+ state.socket.send(JSON.stringify({type:"play",tileId:tile.id,end}));
+ state.selected=null;
 }
+setInterval(()=>{
+ const clock=document.querySelector(".turn-clock");
+ if(clock){const left=Math.max(0,Math.ceil((Number(clock.dataset.deadline)-Date.now())/1000));clock.textContent=left+" ثانية";}
+},250);
 renderLobby();
