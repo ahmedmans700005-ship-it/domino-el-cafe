@@ -30,6 +30,36 @@ export default {
       return json({ error: "تعذر إنشاء الغرفة، جرّب مرة أخرى" }, 503);
     }
 
+    const iceMatch = url.pathname.match(/^\/api\/rooms\/(\d{6})\/ice$/);
+    if (iceMatch && request.method === "POST") {
+      let body;
+      try { body = await request.json(); } catch { return json({ error: "Invalid JSON" }, 400); }
+      if (typeof body.playerId !== "string" || body.playerId.length > 80) return json({ error: "Player session required" }, 401);
+      const stub = env.ROOMS.get(env.ROOMS.idFromName(iceMatch[1]));
+      const access = await stub.fetch(`https://room.internal/ice-access?playerId=${encodeURIComponent(body.playerId)}`);
+      if (!access.ok) return json({ error: "لازم تكون داخل الغرفة قبل تشغيل الصوت" }, 403);
+
+      const fallback = [{ urls: "stun:stun.l.google.com:19302" }];
+      if (!env.TURNIX_API_TOKEN) return json({ iceServers: fallback, turnAvailable: false });
+      try {
+        const turnResponse = await fetch("https://turnix.io/api/v1/credentials/ice", {
+          method: "POST",
+          headers: {
+            "authorization": `Bearer ${env.TURNIX_API_TOKEN}`,
+            "content-type": "application/json",
+            "x-turn-client-ip": request.headers.get("cf-connecting-ip") || ""
+          },
+          body: JSON.stringify({ room: iceMatch[1], ttl: 3600 })
+        });
+        if (!turnResponse.ok) return json({ iceServers: fallback, turnAvailable: false });
+        const turnData = await turnResponse.json();
+        if (!Array.isArray(turnData.iceServers) || !turnData.iceServers.length) return json({ iceServers: fallback, turnAvailable: false });
+        return json({ iceServers: turnData.iceServers, turnAvailable: true });
+      } catch {
+        return json({ iceServers: fallback, turnAvailable: false });
+      }
+    }
+
     const roomMatch = url.pathname.match(/^\/api\/rooms\/(\d{6})$/);
     if (roomMatch && request.method === "GET") {
       const stub = env.ROOMS.get(env.ROOMS.idFromName(roomMatch[1]));
@@ -75,6 +105,10 @@ export class DominoRoom {
     }
     if (!this.room) return json({ error: "الغرفة غير موجودة" }, 404);
     if (url.pathname === "/snapshot") return json(roomSnapshot(this.room));
+    if (url.pathname === "/ice-access" && request.method === "GET") {
+      const player = this.room.players.find(p => p.id === url.searchParams.get("playerId") && p.connected);
+      return player ? json({ ok: true }) : json({ error: "Not a connected room player" }, 403);
+    }
     if (request.headers.get("Upgrade")?.toLowerCase() !== "websocket") return json({ error: "WebSocket required" }, 426);
 
     const name = cleanPlayerName(url.searchParams.get("name"));
