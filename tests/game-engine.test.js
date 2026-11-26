@@ -53,14 +53,14 @@ test("round deals seven tiles and leads with the highest available double",()=>{
  const opening=r.match.board[0];
  assert.equal(opening.a,opening.b);
  assert.equal(r.players.some(p=>p.hand.some(t=>t.id===opening.id)),false);
- assert.equal(r.match.currentPlayerId,"p1");
+ const starterSeat=r.players.find(p=>p.id===r.match.lastMove.playerId).seat;\n assert.equal(r.match.currentPlayerId,r.players[(starterSeat+1)%r.players.length].id);
  assert.equal(r.match.boneyard.length,13);
 });
 
 test("3-player and 4-player rounds use seven tiles per player",()=>{
  for(const [mode,count,pile] of [["3free",3,7],["4free",4,0]]){
   const r=room(mode,count);beginRound(r,()=>0.13);
-  assert.ok(r.players.every(p=>p.hand.length===6)); // opening double is placed immediately
+  assert.equal(r.players.reduce((n,p)=>n+p.hand.length,0),count*7-1); // opening double is placed immediately
   assert.equal(r.match.boneyard.length,pile);
  }
 });
