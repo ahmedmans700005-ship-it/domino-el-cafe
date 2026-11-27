@@ -213,17 +213,19 @@ function renderRoom(){
  mic.addEventListener("click",async()=>{try{if(!state.voice.enabled)await state.voice.enable();else state.voice.toggleMute();renderRoom()}catch(error){alert(error.message)}});
  const copy=el("button","secondary-btn","نسخ رقم الغرفة");
  copy.addEventListener("click",async()=>{try{await navigator.clipboard.writeText(state.room);copy.textContent="اتنسخ ✓"}catch{alert("رقم الغرفة: "+state.room)}});
- const back=el("button","ghost-btn","خروج للقائمة");
+ const back=el("button","ghost-btn","خروج من اللعبة");
  back.addEventListener("click",()=>{
-   state.intentionalLeave=true;if(state.reconnectTimer)clearTimeout(state.reconnectTimer);state.reconnectTimer=null;
+   if(!confirm("هتخرج من اللعبة والغرفة نهائيًا. متأكد؟"))return;
+   state.intentionalLeave=true;
+   if(state.reconnectTimer)clearTimeout(state.reconnectTimer);
+   state.reconnectTimer=null;
    state.voice?.close();state.voice=null;
    if(state.socket?.readyState===WebSocket.OPEN)state.socket.send(JSON.stringify({type:"leave"}));
-   state.socket?.close();state.socket=null;state.screen="lobby";state.roomInfo=null;state.playerId="";state.hand=[];state.board=[];sessionStorage.removeItem("domino:lastRoom");
-   if("serviceWorker" in navigator && location.protocol==="https:") navigator.serviceWorker.register("/sw.js").catch(()=>{});
-const savedName=sessionStorage.getItem("domino:name");
-const savedRoom=sessionStorage.getItem("domino:lastRoom");
-if(savedName&&savedRoom){state.name=savedName;joinRoom(savedRoom).catch(()=>{sessionStorage.removeItem("domino:lastRoom");renderLobby()})}
-else renderLobby();
+   state.socket?.close();state.socket=null;
+   sessionStorage.removeItem(`domino:${state.room}`);
+   sessionStorage.removeItem("domino:lastRoom");
+   state.screen="lobby";state.roomInfo=null;state.playerId="";state.hand=[];state.board=[];state.chat=[];state.room="";
+   renderLobby();
  });
  tools.append(landscape,mic,copy,back);
  room.append(top,table,handArea,chat,tools);app.append(room);log.scrollTop=log.scrollHeight;
