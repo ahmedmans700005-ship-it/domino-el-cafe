@@ -10,6 +10,7 @@ export class RoomVoice {
     this.iceServers = [{ urls: "stun:stun.l.google.com:19302" }];
     this.hasTurn = false;
     this.peers = new Map();
+    this.mutedPeers = new Set();
     this.players = [];
     this.pendingSignals = [];
     this.pendingCandidates = new Map();
@@ -61,6 +62,17 @@ export class RoomVoice {
     this.setMuted(!this.muted);
   }
 
+  isPeerMuted(id) {
+    return this.mutedPeers.has(id);
+  }
+
+  togglePeerMute(id) {
+    if (this.mutedPeers.has(id)) this.mutedPeers.delete(id);
+    else this.mutedPeers.add(id);
+    const peer = this.peers.get(id);
+    if (peer?.audio) peer.audio.muted = this.mutedPeers.has(id);
+  }
+
   send(to, signal) {
     const socket = this.getSocket();
     if (socket?.readyState !== WebSocket.OPEN) return;
@@ -109,6 +121,7 @@ export class RoomVoice {
         peer.audio = document.createElement("audio");
         peer.audio.autoplay = true;
         peer.audio.playsInline = true;
+        peer.audio.muted = this.mutedPeers.has(id);
         peer.audio.dataset.voicePeer = id;
         document.body.append(peer.audio);
       }
