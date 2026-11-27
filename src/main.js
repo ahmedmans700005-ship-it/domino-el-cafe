@@ -104,23 +104,30 @@ function renderLobby(){
   const foot=el("div","footnote","الغرف والشات الفوري متصلان بالسيرفر عند النشر — اللعب والصوت قيد الاستكمال");
   shell.append(brand,hero,panel,foot);app.append(shell);
 }
+const pipMap={0:[],1:[4],2:[0,8],3:[0,4,8],4:[0,2,6,8],5:[0,2,4,6,8],6:[0,2,3,5,6,8]};
+function pipFace(value){return '<span class="pip-face">'+Array.from({length:9},(_,i)=>'<i class="'+(pipMap[value].includes(i)?'on':'')+'"></i>').join('')+'</span>'}
 function tileNode(tile,clickable=false){
-  const n=el("button","domino-tile"+(clickable?" hand-tile":""));n.type="button";n.setAttribute("aria-label",`${tile.a} و ${tile.b}`);
-  n.innerHTML=`<span>${dots(tile.a)}</span><i></i><span>${dots(tile.b)}</span>`;
+  const n=el("button","domino-tile"+(clickable?" hand-tile":" board-tile"));n.type="button";n.setAttribute("aria-label",tile.a+" و "+tile.b);
+  n.innerHTML=pipFace(tile.a)+'<i class="tile-divider"></i>'+pipFace(tile.b);
   if(clickable){
     n.draggable=true;
-    n.addEventListener("dragstart",e=>{state.selected=tile.id;e.dataTransfer?.setData("text/plain",tile.id);if(e.dataTransfer)e.dataTransfer.effectAllowed="move"});
-    n.addEventListener("click",()=>{state.selected=state.selected===tile.id?null:tile.id;renderRoom()});
-    n.addEventListener("pointerdown",e=>{if(e.pointerType==="touch"){state.selected=tile.id;n.setPointerCapture(e.pointerId)}});
-    n.addEventListener("pointerup",e=>{
-      if(e.pointerType!=="touch"||!state.selected)return;
-      const target=document.elementFromPoint(e.clientX,e.clientY)?.closest("[data-end]");
-      if(target)playSelected(target.dataset.end);
-    });
+    n.addEventListener("dragstart",e=>{state.selected=tile.id;e.dataTransfer?.setData("text/plain",tile.id);if(e.dataTransfer)e.dataTransfer.effectAllowed="move";n.classList.add("dragging")});
+    n.addEventListener("dragend",()=>n.classList.remove("dragging"));
+    let ghost=null;
+    n.addEventListener("pointerdown",e=>{if(e.pointerType!=="touch")return;state.selected=tile.id;n.setPointerCapture(e.pointerId);ghost=n.cloneNode(true);ghost.classList.add("tile-drag-ghost");document.body.append(ghost);ghost.style.left=(e.clientX-24)+"px";ghost.style.top=(e.clientY-44)+"px"});
+    n.addEventListener("pointermove",e=>{if(e.pointerType==="touch"&&ghost){ghost.style.left=(e.clientX-24)+"px";ghost.style.top=(e.clientY-44)+"px"}});
+    n.addEventListener("pointerup",e=>{if(e.pointerType!=="touch")return;ghost?.remove();ghost=null;const target=document.elementFromPoint(e.clientX,e.clientY)?.closest("[data-end]");if(target)playSelected(target.dataset.end)});
+    n.addEventListener("pointercancel",()=>{ghost?.remove();ghost=null});
   }
   return n;
 }
-function dots(n){return "●".repeat(n)||"·"}
+function makeDropZone(end){
+  const zone=el("div","drop-zone "+end,"اسحب هنا");zone.dataset.end=end;
+  zone.addEventListener("dragover",e=>{e.preventDefault();zone.classList.add("over")});
+  zone.addEventListener("dragleave",()=>zone.classList.remove("over"));
+  zone.addEventListener("drop",e=>{e.preventDefault();zone.classList.remove("over");const id=e.dataTransfer?.getData("text/plain");if(id){state.selected=id;playSelected(end)}});
+  return zone;
+}
 function startDemo(){
  const all=shuffle(makeSet());state.hand=all.splice(0,7);state.pile=all;state.board=[];state.selected=null;
 }
@@ -153,8 +160,10 @@ function renderRoom(){
  if(!players.length)opponents.append(el("small","","بنستقبل اللاعبين..."));
  table.append(opponents);
  const chain=el("div","chain");
+ chain.append(makeDropZone("left"));
  if(state.board.length)state.board.forEach(t=>chain.append(tileNode(t)));
- else chain.append(el("div","empty-board","مستنيين باقي اللاعبين عشان نبدأ الجولة"));
+ else chain.append(el("div","empty-board","اسحب الحجر إلى هنا بعد بدء الجولة"));
+ chain.append(makeDropZone("right"));
  table.append(chain);
  const current=players.find(p=>p.id===match?.currentPlayerId);
  const voiceHint=state.voiceStatus==="direct-only"?"الصوت مباشر فقط — بعض الشبكات قد تحتاج TURN":state.voiceStatus==="on"?"الصوت شغال":state.voiceStatus==="muted"?"المايك مكتوم":state.voiceStatus==="background-muted"?"المايك مكتوم بالخلفية":"";
@@ -173,18 +182,6 @@ function renderRoom(){
    const scoreLine=Object.entries(match.scores).map(([id,score])=>`${state.mode==="2v2"?(id==="0"?"فريق أ":"فريق ب"):(players.find(p=>p.id===id)?.name||id)}: ${score}`).join("  ·  ");
    table.append(el("div","score-line",scoreLine));
  }
- const ends=el("div","end-actions");
- ["left","right"].forEach(end=>{
-   const b=el("button","end-btn",end==="left"?"⬅️ الشمال":"اليمين ➡️");
-   b.dataset.end=end;
-   const tile=state.hand.find(t=>t.id===state.selected);
-   b.disabled=!match||match.status!=="playing"||match.currentPlayerId!==state.playerId||!tile||!getLegalEnds(state.board,tile).includes(end);
-   b.addEventListener("click",()=>playSelected(end));
-   b.addEventListener("dragover",e=>e.preventDefault());
-   b.addEventListener("drop",e=>{e.preventDefault();const id=e.dataTransfer?.getData("text/plain");if(id){state.selected=id;playSelected(end)}});
-   ends.append(b);
- });
- table.append(ends);
  const handArea=el("section","hand-area");
  handArea.append(el("div","hand-title",`أحجارك: ${state.hand.length}  ·  المخزون: ${match?.boneyardCount??"—"}`));
  const hand=el("div","hand");
