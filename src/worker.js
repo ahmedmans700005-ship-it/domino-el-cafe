@@ -166,8 +166,12 @@ export class DominoRoom {
     const player=this.room?.players.find(p=>p.id===id);
     if(!player||!message||typeof message.type!=="string")return;
     if(message.type==="leave"){
-      if(this.room.match?.status==="playing"||this.room.match?.status==="round_over")player.connected=false;
-      else {this.room.players=this.room.players.filter(p=>p.id!==player.id);this.room.players.forEach((p,i)=>p.seat=i);this.room.status="waiting";}
+      // Explicit exit removes the player from the room, even during an active round.
+      for(const peer of this.ctx.getWebSockets(player.id)){try{peer.close(1000,"Player left")}catch{}}
+      this.room.players=this.room.players.filter(p=>p.id!==player.id);
+      this.room.players.forEach((p,i)=>{p.seat=i;p.hand=[]});
+      // A round cannot continue fairly after a participant leaves; keep the room open for a fresh start.
+      if(this.room.match){this.room.match=null;this.room.status="waiting"}
       await this.save();this.broadcastState();try{socket.close(1000,"Player left")}catch{}return;
     }
     if(message.type==="chat"){
