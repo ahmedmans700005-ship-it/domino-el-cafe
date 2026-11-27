@@ -45,3 +45,9 @@
 .domino-tile.board-tile{width:68px;height:36px;flex:0 0 68px;padding:3px 4px}
 .domino-tile.board-tile .pip-face i.on{width:4px;height:4px}
 @media(max-width:600px){.chain{min-height:105px;justify-content:flex-start}.domino-tile.board-tile{width:58px;height:32px;flex-basis:58px}.chain.drop-ready:after{font-size:9px}}
+
+
+/* Per-player incoming voice controls */
+.opponent{gap:8px}
+.peer-audio-btn{width:28px;height:28px;flex:0 0 28px;padding:0;border:1px solid #d9c38d66;border-radius:50%;background:#183d30;color:#f6dfad;font-size:13px;display:grid;place-items:center;line-height:1}
+.peer-audio-btn:hover{background:#315c46;border-color:#e8c47a}
