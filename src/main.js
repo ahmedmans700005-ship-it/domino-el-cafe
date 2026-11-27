@@ -122,8 +122,15 @@ function tileNode(tile,clickable=false){
   return n;
 }
 function endAtPoint(container,clientX){
-  const rect=container.getBoundingClientRect();
-  return clientX < rect.left + rect.width/2 ? "left" : "right";
+  const tiles=container.querySelectorAll(".board-tile");
+  if(!tiles.length){
+    const rect=container.getBoundingClientRect();
+    return clientX < rect.left + rect.width/2 ? "left" : "right";
+  }
+  // Aim for the nearest open end, even when the chain has scrolled past the viewport midpoint.
+  const leftEdge=tiles[0].getBoundingClientRect().left;
+  const rightEdge=tiles[tiles.length-1].getBoundingClientRect().right;
+  return Math.abs(clientX-leftEdge)<=Math.abs(clientX-rightEdge) ? "left" : "right";
 }
 function enableBoardDrop(container){
   container.addEventListener("dragover",e=>{e.preventDefault();container.classList.add("drop-ready");if(e.dataTransfer)e.dataTransfer.dropEffect="move"});
