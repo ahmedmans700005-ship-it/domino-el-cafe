@@ -161,6 +161,11 @@ function renderRoom(){
  players.filter(p=>p.id!==state.playerId).forEach(p=>{
    const node=el("div","opponent"+(match?.currentPlayerId===p.id?" active-turn":""));
    node.append(el("span","avatar","😎"),el("b","",p.name),el("small","",`${p.handCount??0} حجر · ${p.connected?"متصل":"خرج مؤقتًا"}`));
+   const muted=state.voice?.isPeerMuted(p.id)??false;
+   const speaker=el("button","peer-audio-btn",muted?"🔇":"🔊");
+   speaker.type="button";speaker.title=muted?"تشغيل صوت اللاعب":"كتم صوت اللاعب";speaker.setAttribute("aria-label",speaker.title);
+   speaker.addEventListener("click",()=>{state.voice?.togglePeerMute(p.id);renderRoom()});
+   node.append(speaker);
    opponents.append(node);
  });
  if(!players.length)opponents.append(el("small","","بنستقبل اللاعبين..."));
