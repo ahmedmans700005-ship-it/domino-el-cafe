@@ -59,14 +59,31 @@ export function takeTurnTile(room, playerId, tileId, end) {
 
 export function calculateRoundAward(room, winnerIds, blocked = false) {
   const winnerSet=new Set(winnerIds);
-  const winningTeam=room.mode==="2v2" ? room.players.find(p=>winnerSet.has(p.id))?.seat%2 : null;
   if(room.mode==="2v2"){
+    const winningTeams=new Set(room.players.filter(p=>winnerSet.has(p.id)).map(p=>p.seat%2));
+    // A blocked-round tie between teams awards no points.
+    if(winningTeams.size!==1)return 0;
+    const winningTeam=[...winningTeams][0];
     return room.players.filter(p=>p.seat%2!==winningTeam).reduce((s,p)=>s+scoreHand(p.hand),0);
   }
   return room.players.filter(p=>!winnerSet.has(p.id)).reduce((s,p)=>s+scoreHand(p.hand),0);
 }
 
 export function blockedWinners(room) {
+  if(room.mode==="2v2"){
+    if(room.match.boneyard.length || room.players.some(p=>p.hand.some(tile=>getLegalEnds(room.match.board,tile).length)))return [];
+    const teams=[0,1].map(team=>{
+      const members=room.players.filter(p=>p.seat%2===team);
+      return {
+        team,
+        count:members.reduce((sum,p)=>sum+p.hand.length,0),
+        points:members.reduce((sum,p)=>sum+scoreHand(p.hand),0)
+      };
+    }).sort((a,b)=>a.count-b.count||a.points-b.points);
+    const best=teams[0];
+    const winningTeams=new Set(teams.filter(t=>t.count===best.count&&t.points===best.points).map(t=>t.team));
+    return room.players.filter(p=>winningTeams.has(p.seat%2)).map(p=>p.id);
+  }
   const result=resolveBlockedRound(room.players.map(p=>({id:p.id,hand:p.hand})),room.match.board,room.match.boneyard);
   return result?.winnerIds || [];
 }
