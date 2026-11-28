@@ -113,7 +113,7 @@ test("blocked 2v2 compares combined team hands and awards the opposing team's po
 test("a tied blocked 2v2 round awards no points to either team",()=>{
  const r=room("2v2",4);
  r.match={board:[{id:"3-4",a:3,b:4}],boneyard:[]};
- r.players.forEach((p,i)=>{p.hand=[{id:"0-"+i,a:0,b:i===0?0:1}]});
+ r.players.forEach((p,i)=>{p.hand=[{id:"0-"+i,a:0,b:1}]});
  const winners=blockedWinners(r);
  assert.equal(winners.length,4);
  assert.equal(calculateRoundAward(r,winners,true),0);
