@@ -1,6 +1,5 @@
 import "./style.css";
 import { getLegalEnds } from "./game-engine.js";
-import { runSimulationBatch } from "./simulator.js";
 import { RoomVoice } from "./voice.js";
 
 const app = document.querySelector("#app");
@@ -10,7 +9,6 @@ const state = {
   playerId:"", roomInfo:null, socket:null, socketStatus:"connecting", chat:[], voice:null, voiceStatus:"off", reconnectTimer:null, reconnectAttempts:0, intentionalLeave:false
 };
 const modes = [{id:"1v1",label:"واحد ضد واحد",players:2},{id:"2v2",label:"اتنين ضد اتنين",players:4},{id:"3free",label:"٣ لاعيبة — فردي",players:3},{id:"4free",label:"٤ لاعيبة — فردي",players:4}];
-const simulatorState = { mode:"1v1", target:101, games:10, running:false, results:null, error:"" };
 const el = (tag,cls,text) => { const n=document.createElement(tag); if(cls)n.className=cls; if(text!==undefined)n.textContent=text; return n; };
 const currentPlayer = () => state.roomInfo?.players?.find(p=>p.id===state.playerId);
 
@@ -103,75 +101,8 @@ function renderLobby(){
   const create=el("button","primary-btn","اعمل قعدة جديدة");create.addEventListener("click",async()=>{if(!state.name.trim())return name.focus();create.disabled=true;create.textContent="بنجهز القعدة...";try{await createRoom()}catch(error){alert(error.message);create.disabled=false;create.textContent="اعمل قعدة جديدة"}});
   const join=el("button","secondary-btn","ادخل برقم غرفة");join.addEventListener("click",async()=>{if(!state.name.trim())return name.focus();const code=prompt("اكتب رقم الغرفة");if(!code)return;if(!/^\d{6}$/.test(code))return alert("رقم الغرفة لازم يكون ٦ أرقام");join.disabled=true;try{await joinRoom(code)}catch(error){alert(error.message);join.disabled=false}});
   actions.append(create,join);panel.append(actions);
-  const simulator=el("button","secondary-btn simulator-open-btn","🧪 محاكي واختبار اللعبة");
-  simulator.addEventListener("click",renderSimulator);
-  panel.append(simulator);
   const foot=el("div","footnote","الغرف واللعب والشات والصوت جاهزين للتجربة — استمتع بالقعدة ☕");
   shell.append(brand,hero,panel,foot);app.append(shell);
-}
-function runSimulator(allModes=false){
- if(simulatorState.running)return;
- simulatorState.running=true;simulatorState.results=null;simulatorState.error="";
- renderSimulator();
- window.setTimeout(()=>{
-  try{
-   const selected=allModes?modes:[modes.find(m=>m.id===simulatorState.mode)];
-   simulatorState.results=selected.map((mode,index)=>runSimulationBatch({
-    mode:mode.id,target:simulatorState.target,games:allModes?5:simulatorState.games,
-    seed:(Date.now()+index*100003)>>>0
-   }));
-  }catch(error){simulatorState.error=error.message||"حدث خطأ أثناء المحاكاة"}
-  simulatorState.running=false;renderSimulator();
- },30);
-}
-function renderSimulator(){
- app.replaceChildren();
- const shell=el("main","lobby-shell simulator-shell");
- const brand=el("div","brand");brand.innerHTML='<span class="brand-mark">٦|٦</span><span><b>DOMINO <i>EL CAFÉ</i></b><small>محاكي اختبار اللعبة</small></span>';
- const hero=el("section","hero");hero.append(el("div","eyebrow","اختبار داخلي بدون غرف أو لاعبين حقيقيين"));hero.append(el("h1","","خلّي اللعبة تختبر نفسها."));hero.append(el("p","","المحاكي بيشغّل مباريات كاملة بنفس قواعد اللعبة، ويفحص توزيع الأحجار والحركات والقفلة وحساب النقاط."));
- const panel=el("section","setup-panel simulator-panel");
- const modeLabel=el("label","field-label","نظام اللعب");
- const modeSelect=el("select","text-input");modes.forEach(mode=>{const option=el("option","",mode.label);option.value=mode.id;option.selected=simulatorState.mode===mode.id;modeSelect.append(option)});modeSelect.addEventListener("change",()=>simulatorState.mode=modeSelect.value);
- const targetLabel=el("label","field-label","نهاية المباراة");
- const targetSelect=el("select","text-input");[101,151].forEach(value=>{const option=el("option","",String(value)+" نقطة");option.value=String(value);option.selected=simulatorState.target===value;targetSelect.append(option)});targetSelect.addEventListener("change",()=>simulatorState.target=Number(targetSelect.value));
- const countLabel=el("label","field-label","عدد المباريات");
- const countSelect=el("select","text-input");[1,5,10,25,50,100].forEach(value=>{const option=el("option","",String(value)+" مباراة");option.value=String(value);option.selected=simulatorState.games===value;countSelect.append(option)});countSelect.addEventListener("change",()=>simulatorState.games=Number(countSelect.value));
- panel.append(modeLabel,modeSelect,targetLabel,targetSelect,countLabel,countSelect);
- const actions=el("div","lobby-actions");
- const run=el("button","primary-btn",simulatorState.running?"جاري تشغيل المباريات...":"شغّل المحاكاة");
- run.disabled=simulatorState.running;run.addEventListener("click",()=>runSimulator(false));
- const full=el("button","secondary-btn","اختبار شامل لكل الأنظمة");
- full.disabled=simulatorState.running;full.addEventListener("click",()=>runSimulator(true));
- const back=el("button","ghost-btn","رجوع للقائمة");
- back.disabled=simulatorState.running;back.addEventListener("click",renderLobby);
- actions.append(run,full,back);panel.append(actions);
- shell.append(brand,hero,panel);
- if(simulatorState.running)shell.append(el("div","simulator-running","⏳ المحاكي بيشغّل مباريات فعلية بالقواعد البرمجية..."));
- if(simulatorState.error)shell.append(el("div","simulator-error","فشل الاختبار: "+simulatorState.error));
- if(simulatorState.results){
-  const heading=el("h2","simulator-results-title","نتائج الاختبار");
-  shell.append(heading);
-  simulatorState.results.forEach(result=>{
-   const card=el("section","sim-result-card");
-   const mode=modes.find(item=>item.id===result.mode);
-   card.append(el("h3","",mode.label+" — "+result.target+" نقطة"));
-   const stats=el("div","sim-stat-grid");
-   [[ "المباريات",result.completed ],[ "الجولات",result.totalRounds ],[ "الحركات",result.totalMoves ],[ "السحب",result.totalDrawn ],[ "القفلات",result.blockedRounds ],[ "فحوص سلامة الأحجار",result.integrityChecks ]].forEach(([label,value])=>{
-    const item=el("div","sim-stat");item.append(el("strong","",String(value)),el("small","",label));stats.append(item);
-   });
-   card.append(stats);
-   const winners=Object.entries(result.winners).map(([name,count])=>name+": "+count).join(" · ");
-   card.append(el("p","sim-winners","الفائزون: "+winners));
-   const samples=el("div","sim-samples");
-   result.samples.forEach((game,index)=>{
-    const score=Object.entries(game.scores).map(([id,value])=>id+": "+value).join(" | ");
-    samples.append(el("div","sim-sample","مباراة "+(index+1)+" — "+game.winner+" — "+game.rounds+" جولة — "+game.moves+" حركة — "+score));
-   });
-   card.append(samples);shell.append(card);
-  });
-  shell.append(el("p","simulator-footnote","كل المباريات تجريبية محلية؛ لا يتم إنشاء غرف، ولا تغيير بيانات اللاعبين، ولا الاتصال بالسيرفر."));
- }
- app.append(shell);
 }
 const pipMap={0:[],1:[4],2:[0,8],3:[0,4,8],4:[0,2,6,8],5:[0,2,4,6,8],6:[0,2,3,5,6,8]};
 function pipFace(value){return '<span class="pip-face">'+Array.from({length:9},(_,i)=>'<i class="'+(pipMap[value].includes(i)?'on':'')+'"></i>').join('')+'</span>'}

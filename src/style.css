@@ -80,26 +80,3 @@
 .room-tools button{box-shadow:0 3px 8px #0003}
 @media(max-width:700px){.game-table{border-width:7px;border-radius:27px;min-height:44vh;padding:12px 7px}.game-table:before{inset:3px;border-radius:19px}.game-table:after{inset:9px}.chain{min-height:120px;padding:14px 4px}.opponent{padding:5px 8px}.avatar{width:27px;height:27px;font-size:15px}.hand-area{padding:11px 9px}.hand{justify-content:flex-start;padding:12px 9px 9px}.domino-tile.hand-tile{width:43px;height:76px;flex-basis:43px}.domino-tile.board-tile{width:58px;height:32px;flex-basis:58px}}
 @media(orientation:landscape) and (max-height:520px){.game-table{min-height:48vh}.hand{padding:8px}.hand-area{padding:8px 12px}.domino-tile.hand-tile{height:58px;width:34px;flex-basis:34px}.chain{min-height:95px}}
-
-
-/* In-game deterministic simulator */
-.simulator-open-btn{width:100%;margin-top:10px;border:1px solid #c99b5c;background:linear-gradient(145deg,#315b45,#18382b);color:#ffe7b5}
-.simulator-shell{max-width:1040px}
-.simulator-panel{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.simulator-panel>.field-label{margin-top:4px}
-.simulator-panel>.text-input{width:100%;min-width:0}
-.simulator-panel>.lobby-actions{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:10px;margin-top:10px}
-.simulator-results-title{color:#f6e1b8;text-align:center;margin:22px 0 12px;font-size:22px}
-.sim-result-card{margin:12px auto;padding:18px;border:1px solid #c49a5e88;border-radius:18px;background:linear-gradient(145deg,#183a2d,#10271f);color:#f9e7c2;box-shadow:0 12px 28px #0004}
-.sim-result-card h3{margin:0 0 14px;color:#f8d99c}
-.sim-stat-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
-.sim-stat{display:flex;flex-direction:column;gap:4px;align-items:center;padding:12px 5px;border:1px solid #c99b5c55;border-radius:12px;background:#0b241b}
-.sim-stat strong{font-size:23px;color:#ffe0a0;font-variant-numeric:tabular-nums}
-.sim-stat small{font-size:11px;color:#d7c39b;text-align:center}
-.sim-winners{color:#ffe1a2;font-weight:800;margin:14px 0 8px}
-.sim-samples{display:grid;gap:6px}
-.sim-sample{padding:8px 10px;border-radius:9px;background:#ffffff0a;color:#e7dcc3;font-size:12px}
-.simulator-running,.simulator-error,.simulator-footnote{margin:14px auto;padding:12px;text-align:center;border-radius:12px;background:#163a2d;color:#f7dfaa}
-.simulator-error{background:#512d25;color:#ffe1d7}
-.simulator-footnote{background:transparent;color:#c9b995;font-size:12px}
-@media(max-width:600px){.simulator-panel{grid-template-columns:1fr}.simulator-panel>.lobby-actions{grid-column:1}.sim-stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.sim-result-card{padding:12px}}
