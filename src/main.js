@@ -258,3 +258,10 @@ const savedName=sessionStorage.getItem("domino:name");
 const savedRoom=sessionStorage.getItem("domino:lastRoom");
 if(savedName&&savedRoom){state.name=savedName;joinRoom(savedRoom).catch(()=>{sessionStorage.removeItem("domino:lastRoom");renderLobby()})}
 else renderLobby();
+
+// Register the PWA worker so installation and the cached offline shell actually work.
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js").catch(() => {});
+  });
+}
