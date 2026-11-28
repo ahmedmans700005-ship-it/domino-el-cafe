@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { makeSet, getLegalEnds, placeTile, drawUntilPlayable, resolveBlockedRound } from "../src/game-engine.js";
 import { createRoomState } from "../src/room-utils.js";
-import { beginRound, chooseAutomaticMove, takeTurnTile, applyRoundResult } from "../src/match-engine.js";
+import { beginRound, chooseAutomaticMove, takeTurnTile, applyRoundResult, blockedWinners, calculateRoundAward } from "../src/match-engine.js";
 
 test("double-six set contains 28 unique tiles",()=>{
   const set=makeSet();
@@ -92,4 +92,32 @@ test("round award accumulates points and ends match at target",()=>{
  r.match.scores[winner.id]=10;
  applyRoundResult(r,[winner.id],false);
  assert.equal(r.match.status,"match_over");
+});
+
+
+test("blocked 2v2 compares combined team hands and awards the opposing team's points",()=>{
+ const r=room("2v2",4);
+ r.match={board:[{id:"3-4",a:3,b:4}],boneyard:[]};
+ r.players[0].hand=[{id:"0-0",a:0,b:0}];
+ r.players[2].hand=[{id:"0-1",a:0,b:1}];
+ r.players[1].hand=[{id:"5-5",a:5,b:5}];
+ r.players[3].hand=[{id:"4-4",a:4,b:4}];
+ const winners=blockedWinners(r);
+ assert.deepEqual(winners,["p0","p2"]);
+ assert.equal(calculateRoundAward(r,winners,true),18);
+ applyRoundResult(r,winners,true);
+ assert.equal(r.match.scores["0"],18);
+ assert.equal(r.match.scores["1"],0);
+});
+
+test("a tied blocked 2v2 round awards no points to either team",()=>{
+ const r=room("2v2",4);
+ r.match={board:[{id:"3-4",a:3,b:4}],boneyard:[]};
+ r.players.forEach((p,i)=>{p.hand=[{id:"0-"+i,a:0,b:i===0?0:1}]});
+ const winners=blockedWinners(r);
+ assert.equal(winners.length,4);
+ assert.equal(calculateRoundAward(r,winners,true),0);
+ applyRoundResult(r,winners,true);
+ assert.equal(r.match.scores["0"],0);
+ assert.equal(r.match.scores["1"],0);
 });
