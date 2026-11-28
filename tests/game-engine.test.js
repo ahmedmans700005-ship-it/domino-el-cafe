@@ -97,7 +97,7 @@ test("round award accumulates points and ends match at target",()=>{
 
 test("blocked 2v2 compares combined team hands and awards the opposing team's points",()=>{
  const r=room("2v2",4);
- r.match={board:[{id:"3-4",a:3,b:4}],boneyard:[]};
+ r.match={board:[{id:"3-4",a:3,b:4}],boneyard:[],scores:{"0":0,"1":0},status:"playing"};
  r.players[0].hand=[{id:"0-0",a:0,b:0}];
  r.players[2].hand=[{id:"0-1",a:0,b:1}];
  r.players[1].hand=[{id:"5-5",a:5,b:5}];
