@@ -101,12 +101,12 @@ test("blocked 2v2 compares combined team hands and awards the opposing team's po
  r.players[0].hand=[{id:"0-0",a:0,b:0}];
  r.players[2].hand=[{id:"0-1",a:0,b:1}];
  r.players[1].hand=[{id:"5-5",a:5,b:5}];
- r.players[3].hand=[{id:"4-4",a:4,b:4}];
+ r.players[3].hand=[{id:"6-6",a:6,b:6}];
  const winners=blockedWinners(r);
  assert.deepEqual(winners,["p0","p2"]);
- assert.equal(calculateRoundAward(r,winners,true),18);
+ assert.equal(calculateRoundAward(r,winners,true),22);
  applyRoundResult(r,winners,true);
- assert.equal(r.match.scores["0"],18);
+ assert.equal(r.match.scores["0"],22);
  assert.equal(r.match.scores["1"],0);
 });
 
