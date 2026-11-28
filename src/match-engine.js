@@ -66,6 +66,7 @@ export function calculateRoundAward(room, winnerIds, blocked = false) {
     const winningTeam=[...winningTeams][0];
     return room.players.filter(p=>p.seat%2!==winningTeam).reduce((s,p)=>s+scoreHand(p.hand),0);
   }
+  if(winnerSet.size!==1)return 0;
   return room.players.filter(p=>!winnerSet.has(p.id)).reduce((s,p)=>s+scoreHand(p.hand),0);
 }
 
@@ -96,7 +97,7 @@ export function applyRoundResult(room, winnerIds, blocked = false) {
     const key=String(winningTeam);
     room.match.scores[key]=(room.match.scores[key]||0)+points;
     if(room.match.scores[key]>=room.target) room.match.status="match_over";
-  } else {
+  } else if(winnerIds.length===1) {
     const key=winnerIds[0];
     room.match.scores[key]=(room.match.scores[key]||0)+points;
     if(room.match.scores[key]>=room.target) room.match.status="match_over";
