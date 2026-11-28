@@ -121,3 +121,17 @@ test("a tied blocked 2v2 round awards no points to either team",()=>{
  assert.equal(r.match.scores["0"],0);
  assert.equal(r.match.scores["1"],0);
 });
+
+
+test("a tied blocked individual round awards no points",()=>{
+ const r=room("1v1",2);
+ r.match={board:[{id:"3-4",a:3,b:4}],boneyard:[],scores:{p0:0,p1:0},status:"playing"};
+ r.players[0].hand=[{id:"0-2",a:0,b:2}];
+ r.players[1].hand=[{id:"1-1",a:1,b:1}];
+ const winners=blockedWinners(r);
+ assert.deepEqual(winners,["p0","p1"]);
+ assert.equal(calculateRoundAward(r,winners,true),0);
+ applyRoundResult(r,winners,true);
+ assert.equal(r.match.scores.p0,0);
+ assert.equal(r.match.scores.p1,0);
+});
